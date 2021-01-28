@@ -38,10 +38,10 @@ class CasSchemaConf(Schema):
     USERS_CAN_SEE_ORGANISM_DATA = fields.Boolean(missing=False)
     # Quel modules seront associés au JDD récupérés depuis MTD
 
+
 class MTDSchemaConf(Schema):
     JDD_MODULE_CODE_ASSOCIATION = fields.List(fields.String, missing=["OCCTAX", "OCCHAB"])
     ID_INSTANCE_FILTER = fields.Integer(missing=None)
-
 
 
 class BddConfig(Schema):
@@ -109,8 +109,10 @@ class MetadataConfig(Schema):
     MAIL_CONTENT_AF_CLOSED_URL = fields.String(missing="")
     MAIL_CONTENT_AF_CLOSED_GREETINGS = fields.String(missing="")
     CLOSED_MODAL_LABEL = fields.String(missing="Fermer un cadre d'acquisition")
-    CLOSED_MODAL_CONTENT = fields.String(missing="""L'action de fermeture est irréversible. Il ne sera
-    plus possible d'ajouter des jeux de données au cadre d'acquisition par la suite.""")
+    CLOSED_MODAL_CONTENT = fields.String(
+        missing="""L'action de fermeture est irréversible. Il ne sera
+    plus possible d'ajouter des jeux de données au cadre d'acquisition par la suite."""
+    )
 
 
 # class a utiliser pour les paramètres que l'on ne veut pas passer au frontend
@@ -124,6 +126,12 @@ class GnPySchemaConf(Schema):
             0,
             "Database uri is invalid ex: postgresql://monuser:monpass@server:port/db_name",
         ),
+    )
+    SQLALCHEMY_ENGINE_OPTIONS = fields.Dict(missing={
+        "connect_args":{
+            "application_name":"GeoNature2"
+            },
+        },
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = fields.Boolean(missing=True)
     SESSION_TYPE = fields.String(missing="filesystem")
@@ -259,24 +267,17 @@ BASEMAP = [
     {
         "name": "OpenStreetMap",
         "url": "//{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-        "options": {
-            "attribution": "&copy OpenStreetMap",
-        },
+        "options": {"attribution": "&copy OpenStreetMap",},
     },
     {
         "name": "OpenTopoMap",
         "url": "//a.tile.opentopomap.org/{z}/{x}/{y}.png",
-        "options": {
-            "attribution": "© OpenTopoMap",
-        },
+        "options": {"attribution": "© OpenTopoMap",},
     },
     {
         "name": "GoogleSatellite",
         "layer": "//{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-        "options": {
-            "subdomains": ["mt0", "mt1", "mt2", "mt3"],
-            "attribution": "© GoogleMap",
-        },
+        "options": {"subdomains": ["mt0", "mt1", "mt2", "mt3"], "attribution": "© GoogleMap",},
     },
 ]
 
