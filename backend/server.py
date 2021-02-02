@@ -9,12 +9,13 @@ from flask_mail import Mail, Message
 from flask_cors import CORS
 from sqlalchemy import exc as sa_exc
 from flask_sqlalchemy import before_models_committed
-
+import flask_monitoringdashboard as dashboard 
 from geonature.utils.env import DB, MA, list_and_import_gn_modules
 
 
 MAIL = Mail()
 
+logger = logging.getLogger(__name__)
 
 class ReverseProxied(object):
     def __init__(self, app, script_name=None, scheme=None, server=None):
@@ -46,10 +47,11 @@ def get_app(config, _app=None, with_external_mods=True, with_flask_admin=True):
 
     app = Flask(__name__)
     app.config.update(config)
-
+    
     # Bind app to DB
     DB.init_app(app)
-
+    logger.info(f"DB {DB}")
+    dashboard.bind(app)
     # For deleting files on "delete" media
     @before_models_committed.connect_via(app)
     def on_before_models_committed(sender, changes):
