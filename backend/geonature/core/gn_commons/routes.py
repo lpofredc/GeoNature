@@ -13,6 +13,7 @@ from geonature.utils.env import DB, BACKEND_DIR
 from geonature.core.gn_permissions import decorators as permissions
 from geonature.core.gn_permissions.tools import cruved_scope_for_user_in_module
 from shapely.geometry import asShape
+from datetime import date, datetime, timedelta
 from geoalchemy2.shape import from_shape
 from geonature.utils.errors import (
     GeoNatureError,
@@ -227,3 +228,33 @@ def add_one_place(info_role):
 
 #######################################################################################
 #######################################################################################
+
+from .models import THistoryActions
+
+@routes.route("/history_actions", methods=["get"])
+@permissions.check_cruved_scope("R", True)
+@json_resp
+def list_history(info_role):
+    """Generate a list of last actions from gn_commons.t_history_actions
+
+    Args:
+        start (datetime): [description]
+        end (datetime, optional): [description]. Defaults to datetime.now().
+    """
+    #if request.args.get("sta"):
+    #    start = request.args.get("sta")
+    #else:
+    d = date.today() - timedelta(days=10)
+    start = datetime.combine(d, datetime.min.time())
+    #if request.args.get("end"):
+    #   end = request.args.get("end")
+
+    #log.debug(f"start: {start}, end: {end}")
+
+    q = DB.session.query(THistoryActions).filter(
+        THistoryActions.operation_date >= start
+    )
+    data = q.all()
+    r = [d.as_dict() for d in data]
+    return r
+
