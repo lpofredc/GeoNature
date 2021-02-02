@@ -104,9 +104,14 @@ class GnPySchemaConf(Schema):
         required=True,
         validate=Regexp(
             "^postgresql:\/\/.*:.*@[^:]+:\w+\/\w+$",
+            #"^postgresql:\/\/.*:.*@[^:]+:\w+\/\w+([-a-zA-Z0-9@:%_\+.~#()?&//=]*)$",
             0,
             "Database uri is invalid ex: postgresql://monuser:monpass@server:port/db_name",
         ),
+    )
+    SQLALCHEMY_ENGINE_OPTIONS = fields.Dict(missing={
+        "connect_args":{"application_name":"GeoNature2",}
+        },
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = fields.Boolean(missing=True)
     SESSION_TYPE = fields.String(missing="filesystem")
