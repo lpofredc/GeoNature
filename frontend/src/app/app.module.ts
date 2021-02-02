@@ -39,6 +39,7 @@ import { IntroductionComponent } from '../custom/components/introduction/introdu
 // Service
 import { AuthService } from './components/auth/auth.service';
 import { CookieService } from 'ng2-cookies';
+import { ChartsModule } from 'ng2-charts/ng2-charts';
 import {
   AuthGuard,
   ModuleGuardService,
@@ -46,7 +47,7 @@ import {
   UserManagementGuard
 } from '@geonature/routing/routes-guards.service';
 import { ModuleService } from './services/module.service';
-import { CruvedStoreService } from './services/cruved-store.service';
+import { CruvedStoreService } from './GN2CommonModule/service/cruved-store.service';
 import { SideNavService } from './components/sidenav-items/sidenav-service';
 
 import { MyCustomInterceptor } from './services/http.interceptor';
@@ -55,6 +56,7 @@ import { GlobalSubService } from './services/global-sub.service';
 export function createTranslateLoader(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
+import { UserDataService } from "./userModule/services/user-data.service";
 
 @NgModule({
   imports: [
@@ -64,6 +66,7 @@ export function createTranslateLoader(http: HttpClient) {
     FlexLayoutModule,
     routing,
     ChartModule,
+    ChartsModule,
     ToastrModule.forRoot({
       positionClass: 'toast-top-center',
       tapToDismiss: true,
@@ -103,8 +106,9 @@ export function createTranslateLoader(http: HttpClient) {
     UserManagementGuard,
     SideNavService,
     CruvedStoreService,
+    UserDataService,
     { provide: HTTP_INTERCEPTORS, useClass: MyCustomInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule {}
+export class AppModule { }

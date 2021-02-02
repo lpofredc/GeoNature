@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild, OnChanges, Injectable } from '@angular/core';
+import { Component, Input, OnInit, ViewChild, Injectable } from '@angular/core';
 import { MapService } from './map.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Map, LatLngExpression } from 'leaflet';
@@ -16,7 +16,8 @@ import {
   distinctUntilChanged,
   tap,
   switchMap,
-  map
+  map,
+  timeout
 } from 'rxjs/operators';
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
@@ -30,7 +31,7 @@ const PARAMS = new HttpParams({
 
 @Injectable()
 export class NominatimService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   search(term: string) {
     if (term === '') {
@@ -44,7 +45,7 @@ export class NominatimService {
 /**
  * Ce composant affiche une carte Leaflet ainsi qu'un outil de recherche de lieux dits et d'adresses (basé sur l'API OpenStreetMap).
  * @example
- * <pnx-map [center]="center" [zoom]="zoom"> </pnx-map>`
+ * <pnx-map height="80vh" [center]="center" [zoom]="zoom" > </pnx-map>`
  */
 @Component({
   selector: 'pnx-map',
@@ -63,6 +64,8 @@ export class MapComponent implements OnInit {
   @Input() height: string;
   /** Activer la barre de recherche */
   @Input() searchBar: boolean = true;
+
+  @ViewChild('mapDiv') mapContainer;
   searchLocation: string;
   public searching = false;
   public searchFailed = false;
@@ -72,7 +75,7 @@ export class MapComponent implements OnInit {
     private mapService: MapService,
     private _commonService: CommonService,
     private _http: HttpClient,
-    private _nominatim: NominatimService
+    private _nominatim: NominatimService,
   ) {
     this.searchLocation = '';
   }
@@ -80,6 +83,7 @@ export class MapComponent implements OnInit {
   ngOnInit() {
     this.initialize();
   }
+
 
   search = (text$: Observable<string>) =>
     text$.pipe(
@@ -112,7 +116,9 @@ export class MapComponent implements OnInit {
       center = L.latLng(AppConfig.MAPCONFIG.CENTER[0], AppConfig.MAPCONFIG.CENTER[1]);
     }
 
-    const map = L.map('map', {
+
+
+    const map = L.map(this.mapContainer.nativeElement, {
       zoomControl: false,
       center: center,
       zoom: this.zoom,
@@ -123,11 +129,21 @@ export class MapComponent implements OnInit {
 
     L.control.zoom({ position: 'topright' }).addTo(map);
     const baseControl = {};
-    AppConfig.MAPCONFIG.BASEMAP.forEach((basemap, index) => {
-      const configObj = (basemap as any).subdomains
-        ? { attribution: basemap.attribution, subdomains: (basemap as any).subdomains }
-        : { attribution: basemap.attribution };
-      baseControl[basemap.name] = L.tileLayer(basemap.layer, configObj);
+    const BASEMAP = JSON.parse(JSON.stringify(AppConfig.MAPCONFIG.BASEMAP));
+
+    BASEMAP.forEach((basemap, index) => {
+      const formatedBasemap = this.formatBaseMapConfig(basemap);
+      if (basemap.service === 'wms') {
+        baseControl[formatedBasemap.name] = L.tileLayer.wms(
+          formatedBasemap.url,
+          formatedBasemap.options
+        );
+      } else {
+        baseControl[formatedBasemap.name] = L.tileLayer(
+          formatedBasemap.url,
+          formatedBasemap.options
+        );
+      }
       if (index === 0) {
         map.addLayer(baseControl[basemap.name]);
       }
@@ -138,6 +154,51 @@ export class MapComponent implements OnInit {
 
     this.mapService.setMap(map);
     this.mapService.initializeLeafletDrawFeatureGroup();
+
+
+    map.on('moveend', e => {
+      this.mapService.currentExtend = {
+        center: this.map.getCenter(),
+        zoom: this.map.getZoom()
+      };
+    });
+
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 50);
+
+  }
+
+  /** Retrocompatibility hack to format map config to the expected format:
+   * 
+   {
+    name: string,
+    url: string,
+    service?: wms|wmts|null
+    options?: {
+        layer?: string,
+        attribution?: string,
+        format?: string
+        [...]
+    }
+  }
+   */
+  formatBaseMapConfig(baseMap) {
+    // tslint:disable-next-line:forin
+    for (let attr in baseMap) {
+      if (attr === 'layer') {
+        baseMap['url'] = baseMap[attr];
+        delete baseMap['layer'];
+      }
+      if (!['url', 'layer', 'name', 'service', 'options'].includes(attr)) {
+        if (!baseMap['options']) {
+          baseMap['options'] = {};
+        }
+        baseMap['options'][attr] = baseMap[attr];
+        delete baseMap[attr];
+      }
+    }
+    return baseMap;
   }
 
   formatter(nominatim) {
