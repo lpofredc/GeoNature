@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import sqlalchemy as sa
 import datetime
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Unicode, and_
 from sqlalchemy.orm import (
     relationship,
     column_property,
@@ -22,6 +22,7 @@ from flask import g
 from flask_sqlalchemy import BaseQuery
 
 from werkzeug.exceptions import NotFound
+from werkzeug.datastructures import MultiDict
 
 from pypnnomenclature.models import TNomenclatures
 from pypnusershub.db.models import User
@@ -129,6 +130,26 @@ class SyntheseQuery(GeoFeatureCollectionMixin, BaseQuery):
             )
         return self
 
+
+    def filter_by_params(self, params: MultiDict = None):
+        model = Synthese
+        and_list = []
+        for key, value in params.items():
+            column = getattr(model, key)
+            if isinstance(column.type, Unicode):
+                and_list.append(column.ilike(f"%{value}%"))
+            else:
+                and_list.append(column == value)
+        and_query = and_(*and_list)
+        return self.filter(and_query)
+
+    def sort(self, label: str, direction: str):
+        model = Synthese
+        order_by = getattr(model, label)
+        if direction == "desc":
+            order_by = order_by.desc()
+
+        return self.order_by(order_by)
 
 @serializable
 class CorAreaSynthese(DB.Model):
@@ -551,8 +572,8 @@ class SyntheseLogEntry(DB.Model):
 
     __tablename__ = "t_log_synthese"
     __table_args__ = {"schema": "gn_synthese"}
+    query_class = SyntheseQuery
     id_synthese = DB.Column(DB.Integer(), primary_key=True)
-    unique_id_sinp = DB.Column(UUID(as_uuid=True))
     last_action = DB.Column(DB.Unicode)
     meta_last_action_date = DB.Column(DB.DateTime)
 
