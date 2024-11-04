@@ -1,14 +1,13 @@
 import { Component, Input, OnInit, ViewChild, Injectable } from '@angular/core';
 import { MapService } from './map.service';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { Map, LatLngExpression } from 'leaflet';
-import { AppConfig } from '@geonature_config/app.config';
+import { Map, LatLngExpression, LatLngBounds } from 'leaflet';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import * as L from 'leaflet';
 import { CommonService } from '../service/common.service';
 
 import 'leaflet-draw';
-import { FormControl } from '@angular/forms';
+import 'leaflet.locatecontrol';
+import { UntypedFormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import {
   catchError,
@@ -17,28 +16,37 @@ import {
   tap,
   switchMap,
   map,
-  timeout
 } from 'rxjs/operators';
+import { ConfigService } from '@geonature/services/config.service';
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
-const PARAMS = new HttpParams({
-  fromObject: {
-    format: 'json',
-    limit: '10',
-    polygon_geojson: '1'
-  }
-});
 
 @Injectable()
 export class NominatimService {
-  constructor(private http: HttpClient) { }
+  PARAMS = null;
+
+  constructor(
+    private http: HttpClient,
+    public config: ConfigService
+  ) {
+    this.PARAMS = new HttpParams({
+      fromObject: {
+        format: 'json',
+        limit: '10',
+        polygon_geojson: '1',
+        countrycodes: this.config.MAPCONFIG.OSM_RESTRICT_COUNTRY_CODES,
+      },
+    });
+  }
 
   search(term: string) {
     if (term === '') {
       return of([]);
     }
 
-    return this.http.get(NOMINATIM_URL, { params: PARAMS.set('q', term) }).pipe(map(res => res));
+    return this.http
+      .get(NOMINATIM_URL, { params: this.PARAMS.set('q', term) })
+      .pipe(map((res) => res));
   }
 }
 
@@ -51,7 +59,7 @@ export class NominatimService {
   selector: 'pnx-map',
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
-  providers: [NominatimService]
+  providers: [NominatimService],
 })
 export class MapComponent implements OnInit {
   /**
@@ -59,38 +67,44 @@ export class MapComponent implements OnInit {
    */
   @Input() center: Array<number>;
   /** Niveaux de zoom à l'initialisation de la carte */
-  @Input() zoom: number = AppConfig.MAPCONFIG.ZOOM_LEVEL;
+  @Input() zoom: number = null;
   /** Hauteur de la carte (obligatoire) */
   @Input() height: string;
+
+  /*@Input() mapContainer: string = 'map';*/
+
   /** Activer la barre de recherche */
   @Input() searchBar: boolean = true;
 
-  @ViewChild('mapDiv') mapContainer;
+  /**Ajouter un bouton de géolocalisation */
+  @Input() geolocation: boolean = false;
+
+  @ViewChild('mapDiv', { static: true }) mapContainer;
   searchLocation: string;
   public searching = false;
   public searchFailed = false;
-  public locationControl = new FormControl();
+  public locationControl = new UntypedFormControl();
   public map: Map;
   constructor(
     private mapService: MapService,
     private _commonService: CommonService,
-    private _http: HttpClient,
     private _nominatim: NominatimService,
+    public config: ConfigService
   ) {
     this.searchLocation = '';
+    this.zoom = this.config.MAPCONFIG.ZOOM_LEVEL;
   }
 
   ngOnInit() {
     this.initialize();
   }
 
-
   search = (text$: Observable<string>) =>
     text$.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       tap(() => (this.searching = true)),
-      switchMap(term =>
+      switchMap((term) =>
         this._nominatim.search(term).pipe(
           tap(() => (this.searchFailed = false)),
           catchError(() => {
@@ -104,33 +118,54 @@ export class MapComponent implements OnInit {
     );
 
   onResultSelected(nomatimObject) {
-    const geojson = L.geoJSON(nomatimObject.item.geojson);
-    this.map.fitBounds(geojson.getBounds());
+    let bounds: LatLngBounds;
+    if (nomatimObject.item?.geojson) {
+      const geojson = L.geoJSON(nomatimObject.item.geojson);
+      bounds = geojson.getBounds();
+    } else {
+      const boundingBox: number[] = nomatimObject.item.boundingbox;
+      bounds = L.latLngBounds(
+        L.latLng(boundingBox[0], boundingBox[2]),
+        L.latLng(boundingBox[1], boundingBox[3])
+      );
+    }
+    this.map.fitBounds(bounds);
   }
 
   initialize() {
-    let center: LatLngExpression;
+    let center: LatLngExpression = L.latLng(
+      this.config.MAPCONFIG.CENTER[0],
+      this.config.MAPCONFIG.CENTER[1]
+    );
     if (this.center !== undefined) {
       center = L.latLng(this.center[0], this.center[1]);
-    } else {
-      center = L.latLng(AppConfig.MAPCONFIG.CENTER[0], AppConfig.MAPCONFIG.CENTER[1]);
     }
 
-
-
-    const map = L.map(this.mapContainer.nativeElement, {
+    // --- Create MAP
+    this.map = L.map(this.mapContainer.nativeElement, {
       zoomControl: false,
       center: center,
       zoom: this.zoom,
-      preferCanvas: true
+      preferCanvas: true,
     });
-    this.map = map;
-    (map as any)._onResize();
+    (this.map as any)._onResize();
 
-    L.control.zoom({ position: 'topright' }).addTo(map);
+    // --- MAP CONTROLS
+    // ZOOM CONTROL
+    L.control.zoom({ position: 'topright' }).addTo(this.map);
+
+    // SCALE
+    L.control.scale().addTo(this.map);
+
+    //  GEOLOCATION
+    if (this.geolocation && this.config.MAPCONFIG.GEOLOCATION) {
+      (L.control as any).locate().addTo(this.map);
+    }
+
+    // --- LAYERS CONTROL
+    // Baselayers
     const baseControl = {};
-    const BASEMAP = JSON.parse(JSON.stringify(AppConfig.MAPCONFIG.BASEMAP));
-
+    const BASEMAP = JSON.parse(JSON.stringify(this.config.MAPCONFIG.BASEMAP));
     BASEMAP.forEach((basemap, index) => {
       const formatedBasemap = this.formatBaseMapConfig(basemap);
       if (basemap.service === 'wms') {
@@ -144,33 +179,59 @@ export class MapComponent implements OnInit {
           formatedBasemap.options
         );
       }
-      if (index === 0) {
-        map.addLayer(baseControl[basemap.name]);
-      }
     });
-    this.mapService.layerControl = L.control.layers(baseControl);
-    this.mapService.layerControl.addTo(map);
-    L.control.scale().addTo(map);
+    // --- Layers selection
+    // overlays layers
+    const overlaysLayers = this.mapService.createOverLayers(this.map);
+    // create control layers
+    this.mapService.layerControl = L.control.layers(baseControl, overlaysLayers, {
+      sortLayers: false, // When false, layers will keep the order in which they were added to the control
+      collapsed: true, //If true, the control will be collapsed into an icon and expanded on mouse hover
+    });
+    this.mapService.layerControl.addTo(this.map);
 
-    this.mapService.setMap(map);
+    this.mapService.setMap(this.map);
+
+    // ADD DRAW CONTROL
     this.mapService.initializeLeafletDrawFeatureGroup();
 
-
-    map.on('moveend', e => {
-      this.mapService.currentExtend = {
-        center: this.map.getCenter(),
-        zoom: this.map.getZoom()
-      };
+    // GET EXTEND ON EACH ZOOM
+    this.map.on('moveend', (e) => {
+      // keep current extend only if current zoom != 0
+      if (this.map.getZoom() !== 0) {
+        this.mapService.currentExtend = {
+          center: this.map.getCenter(),
+          zoom: this.map.getZoom(),
+        };
+      }
     });
+
+    // on L.controler.layers add over layer to map
+    this.map.on('overlayadd', (overlay) => {
+      // once - load JSON or WFS overlay data async if not already loaded
+      this.mapService.loadOverlay(overlay);
+    });
+
+    // Store last selected basemap
+    this.map.on('baselayerchange', (layer) => {
+      localStorage.setItem('MapLayer', layer.name);
+    });
+
+    // Select and add the current tile layer
+    const userMapLayer = localStorage.getItem('MapLayer');
+    if (userMapLayer && baseControl[userMapLayer]) {
+      this.map.addLayer(baseControl[userMapLayer]);
+    } else {
+      this.map.addLayer(baseControl[BASEMAP[0].name]);
+    }
 
     setTimeout(() => {
       this.map.invalidateSize();
     }, 50);
-
   }
 
   /** Retrocompatibility hack to format map config to the expected format:
-   * 
+   *
    {
     name: string,
     url: string,
@@ -184,7 +245,7 @@ export class MapComponent implements OnInit {
   }
    */
   formatBaseMapConfig(baseMap) {
-    // tslint:disable-next-line:forin
+    // eslint-disable-next-line guard-for-in
     for (let attr in baseMap) {
       if (attr === 'layer') {
         baseMap['url'] = baseMap[attr];

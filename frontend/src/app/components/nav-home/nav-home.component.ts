@@ -1,81 +1,122 @@
-import { Component, OnInit, OnDestroy, Inject, ViewChild } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
-import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { AuthService, User } from '../../components/auth/auth.service';
-import { AppConfig } from '../../../conf/app.config';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { MatSidenav } from '@angular/material/sidenav';
+
+import { Subscription } from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
+
+import { AuthService, User } from '../../components/auth/auth.service';
 import { SideNavService } from '../sidenav-items/sidenav-service';
-import { Location } from '@angular/common';
-import { GlobalSubService } from '../../services/global-sub.service';
+import { ModuleService } from '../../services/module.service';
+import { NotificationDataService } from '@geonature/components/notification/notification-data.service';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Component({
   selector: 'pnx-nav-home',
   templateUrl: './nav-home.component.html',
-  styleUrls: ['./nav-home.component.scss']
+  styleUrls: ['./nav-home.component.scss'],
 })
 export class NavHomeComponent implements OnInit, OnDestroy {
   public moduleName = 'Accueil';
   private subscription: Subscription;
   public currentUser: User;
-  public appConfig: any;
   public currentDocUrl: string;
-  @ViewChild('sidenav') public sidenav: MatSidenav;
+  public locale: string;
+  public moduleUrl: string;
+  public notificationNumber: number;
+
+  @ViewChild('sidenav', { static: true }) public sidenav: MatSidenav;
 
   constructor(
-    private translate: TranslateService,
-    public _authService: AuthService,
+    private translateService: TranslateService,
+    public authService: AuthService,
     private activatedRoute: ActivatedRoute,
-    public _sideNavService: SideNavService,
-    private _location: Location,
-    private _globalSub: GlobalSubService
+    public sideNavService: SideNavService,
+    private _moduleService: ModuleService,
+    private notificationDataService: NotificationDataService,
+    private router: Router,
+    public config: ConfigService
   ) {}
 
   ngOnInit() {
-    this.appConfig = AppConfig;
     // Subscribe to router event
+    this.extractLocaleFromUrl();
+
+    // Set the current module name in the navbar
+    this.onModuleChange();
+
+    // Init the sidenav instance in sidebar service
+    this.sideNavService.setSideNav(this.sidenav);
+
+    // Put the user name in navbar
+    this.currentUser = this.authService.getCurrentUser();
+  }
+
+  private extractLocaleFromUrl() {
     this.subscription = this.activatedRoute.queryParams.subscribe((param: any) => {
       const locale = param['locale'];
       if (locale !== undefined) {
-        this.translate.use(locale);
-      }
-    });
-    // Subscribe to currentModuleSub event to set the current module name in the navbar
-    this._globalSub.currentModuleSub.subscribe(module => {
-      if (module) {
-        this.moduleName = module.module_label;
-        if (module.module_doc_url) {
-          this.currentDocUrl = module.module_doc_url;
-        }
+        this.defineLanguage(locale);
       } else {
-        this.moduleName = 'Accueil';
+        this.locale = this.translateService.getDefaultLang();
       }
     });
-    // Init the sidenav instance in sidebar service
-    this._sideNavService.setSideNav(this.sidenav);
-
-    // Put the user name in navbar
-    this.currentUser = this._authService.getCurrentUser();
   }
 
   changeLanguage(lang) {
-    this.translate.use(lang);
+    this.defineLanguage(lang);
+    const prev = this.router.url;
+    this.router.navigate(['/']).then((data) => {
+      this.router.navigate([prev]);
+    });
+  }
+
+  private defineLanguage(lang) {
+    this.locale = lang;
+    this.translateService.use(lang);
+    this.translateService.setDefaultLang(lang);
+  }
+
+  private onModuleChange() {
+    this._moduleService.currentModule$.subscribe((module) => {
+      if (!module) {
+        // If in Home Page
+        module = this.sideNavService.getHomeItem();
+        module.module_doc_url = this._moduleService.geoNatureModule.module_doc_url;
+      }
+      this.moduleName = module.module_label;
+      this.moduleUrl = module.module_url;
+      if (module.module_doc_url) {
+        this.currentDocUrl = module.module_doc_url;
+      }
+    });
+    if (this.config.NOTIFICATIONS_ENABLED == true) {
+      // Update notification count to display in badge
+      this.updateNotificationCount();
+    }
   }
 
   closeSideBar() {
-    this._sideNavService.sidenav.toggle();
+    this.sideNavService.sidenav.toggle();
+    if (this.config.NOTIFICATIONS_ENABLED == true) {
+      // Update notification count to display in badge
+      this.updateNotificationCount();
+    }
   }
 
-  backPage() {
-    this._location.back();
+  private updateNotificationCount() {
+    this.notificationDataService.getNotificationsNumber().subscribe((count) => {
+      this.notificationNumber = count;
+    });
   }
 
-  forwardPage() {
-    this._location.forward();
+  openNotification() {
+    this.updateNotificationCount();
+    this.router.navigate(['/notification']);
   }
 
   ngOnDestroy() {
-    // prevent memory leak by unsubscribing
+    // Prevent memory leak by unsubscribing
     this.subscription.unsubscribe();
   }
 }

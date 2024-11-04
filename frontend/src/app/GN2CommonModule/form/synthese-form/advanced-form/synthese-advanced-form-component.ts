@@ -1,37 +1,43 @@
 import { Component, OnInit, ViewChild, AfterContentInit } from '@angular/core';
+import { UntypedFormGroup } from '@angular/forms';
+
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
-import { TreeNode, TreeComponent, IActionMapping } from 'angular-tree-component';
-import { SyntheseFormService } from '@geonature_common/form/synthese-form/synthese-form.service';
+import { TreeNode, TreeComponent, IActionMapping } from '@circlon/angular-tree-component';
+
 import { DynamicFormService } from '@geonature_common/form/dynamic-form-generator/dynamic-form.service';
-import { FormGroup } from '@angular/forms';
+import { SyntheseFormService } from '@geonature_common/form/synthese-form/synthese-form.service';
 import { TaxonAdvancedStoreService } from '@geonature_common/form/synthese-form/advanced-form/synthese-advanced-form-store.service';
-import { AppConfig } from '@geonature_config/app.config';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Component({
   selector: 'pnx-validation-taxon-advanced',
   templateUrl: './synthese-advanced-form.component.html',
   providers: [DynamicFormService],
-  styleUrls: ['./synthese-advanced-form.component.scss']
+  styleUrls: ['./synthese-advanced-form.component.scss'],
 })
 export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
-  @ViewChild('tree') treeComponent: TreeComponent;
-  public AppConfig = AppConfig;
-  public URL_AUTOCOMPLETE = AppConfig.API_TAXHUB + '/taxref/search/lb_nom';
+  @ViewChild('tree', { static: true })
+  public treeComponent: TreeComponent;
+  public URL_AUTOCOMPLETE;
   public taxonsTree;
   public treeOptions;
   public selectedNodes = [];
   public expandedNodes = [];
   public taxhubAttributes: any;
-  public attributForm: FormGroup;
+  public attributForm: UntypedFormGroup;
   public formBuilded = false;
   public queryString = { add_rank: true, rank_limit: 'GN' };
-  public showTree = false;
+  public isCollapseTree = true;
 
   constructor(
     public activeModal: NgbActiveModal,
     public formService: SyntheseFormService,
-    public storeService: TaxonAdvancedStoreService
+    public storeService: TaxonAdvancedStoreService,
+    public config: ConfigService
   ) {
+    // Set config parameters
+    this.URL_AUTOCOMPLETE = this.config.API_TAXHUB + '/taxref/search/lb_nom';
+
     const actionMapping: IActionMapping = {
       mouse: {
         click: (tree, node, $event) => {},
@@ -41,18 +47,18 @@ export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
             node.toggleExpanded();
           }
           //this.expandNodeRecursively(node, 0);
-        }
-      }
+        },
+      },
     };
     this.treeOptions = {
       actionMapping,
-      useCheckbox: true
+      useCheckbox: true,
     };
   }
 
   ngOnInit() {
     // if the modal has already been open, reload the former state of the taxon tree
-    if (this.storeService.taxonTreeState) {
+    if (this.storeService.displayTaxonTree && this.storeService.taxonTreeState) {
       this.storeService.treeModel.setState(this.storeService.taxonTreeState);
     }
   }
@@ -62,17 +68,13 @@ export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
     return item;
   }
 
-  toggleTree() {
-    this.showTree = !this.showTree;
-  }
-
   // Algo pour 'expand' tous les noeud fils recursivement à partir un noeud parent
   // depth : profondeur de l'arbre jusqu'ou on ouvre
   // Non utilisée pour des raisons de performances
   expandNodeRecursively(node: TreeNode, depth: number): void {
     depth = depth - 1;
     if (node.children) {
-      node.children.forEach(subNode => {
+      node.children.forEach((subNode) => {
         if (!subNode.isExpanded) {
           subNode.toggleExpanded();
         }
@@ -89,10 +91,55 @@ export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
     this.formService.searchForm.controls.taxon_rank.reset();
   }
 
+  onStatusCheckboxChanged(event) {
+    if (event.target.checked == true) {
+      this.formService.selectedStatus.push(event.target.value);
+    } else if (event.target.checked == false) {
+      this.formService.selectedStatus.splice(
+        this.formService.selectedStatus.indexOf(event.target.value),
+        1
+      );
+      // Reset input checkbox Reactive From to not send "False"
+      this.formService.searchForm.controls[event.target.id].reset();
+    }
+  }
+
+  onStatusSelected(event) {
+    this.formService.selectedStatus.push(event.cd_type_statut);
+  }
+
+  onStatusDeleted(event) {
+    this.formService.selectedStatus.splice(
+      this.formService.selectedStatus.indexOf(event.value.cd_type_statut),
+      1
+    );
+  }
+
+  onRedListsSelected(event) {
+    let key = `${event.statusType} [${event.code_statut}]`;
+    this.formService.selectedRedLists.push(key);
+  }
+
+  onRedListsDeleted(event) {
+    let key = `${event.statusType} [${event.value.code_statut}]`;
+    this.formService.selectedRedLists.splice(this.formService.selectedRedLists.indexOf(key), 1);
+  }
+
+  onTaxRefAttributsSelected(event) {
+    this.formService.selectedTaxRefAttributs.push(event);
+  }
+
+  onTaxRefAttributsDeleted(event) {
+    this.formService.selectedTaxRefAttributs.splice(
+      this.formService.selectedTaxRefAttributs.indexOf(event),
+      1
+    );
+  }
+
   // algo recursif pour retrouver tout les cd_ref sélectionné à partir de l'arbre
   searchSelectedId(node, depth): Array<any> {
     if (node.children) {
-      node.children.forEach(subNode => {
+      node.children.forEach((subNode) => {
         depth = depth - 1;
         if (depth > 0) {
           this.searchSelectedId(subNode, depth);
@@ -105,7 +152,9 @@ export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
   }
 
   ngAfterContentInit() {
-    this.storeService.treeModel = this.treeComponent.treeModel;
+    if (this.storeService.displayTaxonTree) {
+      this.storeService.treeModel = this.treeComponent.treeModel;
+    }
   }
 
   catchEvent(event) {
@@ -124,14 +173,16 @@ export class TaxonAdvancedModalComponent implements OnInit, AfterContentInit {
 
   resetTree() {
     this.storeService.treeModel.collapseAll();
-    this.storeService.treeModel.doForAll(node => {
+    this.storeService.treeModel.doForAll((node) => {
       node.setIsSelected(false);
     });
     this.formService.selectedCdRefFromTree = [];
   }
 
   onCloseModal() {
-    this.storeService.taxonTreeState = this.storeService.treeModel.getState();
+    if (this.storeService.displayTaxonTree) {
+      this.storeService.taxonTreeState = this.storeService.treeModel.getState();
+    }
     this.activeModal.close();
   }
 

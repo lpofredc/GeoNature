@@ -1,64 +1,91 @@
-import { Component, OnInit } from '@angular/core';
-import { AppConfig } from '../../../conf/app.config';
+import { AfterViewInit, Component, OnInit } from '@angular/core';
+
+import { LangChangeEvent, TranslateService } from '@ngx-translate/core';
+
 import { MapService } from '@geonature_common/map/map.service';
-import { SideNavService } from '../sidenav-items/sidenav-service';
 import { SyntheseDataService } from '@geonature_common/form/synthese-form/synthese-data.service';
-import { GlobalSubService } from '../../services/global-sub.service';
+
+import { SideNavService } from '../sidenav-items/sidenav-service';
+import { ModuleService } from '../../services/module.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import * as L from 'leaflet';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Component({
   selector: 'pnx-home-content',
   templateUrl: './home-content.component.html',
   styleUrls: ['./home-content.component.scss'],
-  providers: [MapService, SyntheseDataService]
+  providers: [MapService, SyntheseDataService],
 })
-export class HomeContentComponent implements OnInit {
-
-  public appConfig: any;
-  public lastObs: any;
+export class HomeContentComponent implements OnInit, AfterViewInit {
+  public showLastObsMap: boolean = false;
+  public showGeneralStat: boolean = false;
   public generalStat: any;
+  public locale: string;
+  public destroy$: Subject<boolean> = new Subject<boolean>();
+  public cluserOrSimpleFeatureGroup = null;
 
   constructor(
     private _SideNavService: SideNavService,
     private _syntheseApi: SyntheseDataService,
-    private _globalSub: GlobalSubService,
-    private _mapService: MapService
-  ) {}
+    private _mapService: MapService,
+    private _moduleService: ModuleService,
+    private translateService: TranslateService,
+    public config: ConfigService
+  ) {
+    // this work here thanks to APP_INITIALIZER on ModuleService
+    let synthese_module = this._moduleService.getModule('SYNTHESE');
+    let synthese_read_scope = synthese_module ? synthese_module.cruved['R'] : 0;
 
-  ngOnInit() {
-    this._SideNavService.sidenav.open();
-    this.appConfig = AppConfig;
-
-    if (AppConfig.FRONTEND.DISPLAY_MAP_LAST_OBS) {
-      this._syntheseApi.getSyntheseData({ limit: 100 }).subscribe(result => {
-        this.lastObs = result.data;
-      });
+    if (this.config.FRONTEND.DISPLAY_MAP_LAST_OBS && synthese_read_scope > 0) {
+      this.showLastObsMap = true;
+    }
+    if (this.config.FRONTEND.DISPLAY_STAT_BLOC && synthese_read_scope > 0) {
+      this.showGeneralStat = true;
     }
 
-    if (AppConfig.FRONTEND.DISPLAY_STAT_BLOC) {
-      // Get general stats
-      this._syntheseApi
-        .getSyntheseGeneralStat()
-        .map(stat => {
-          // tslint:disable-next-line:forin
-          for (const key in stat) {
-            // Pretty the number with spaces
-            if (stat[key]) {
-              stat[key] = stat[key].toLocaleString('fr-FR');
-            }
-          }
-          return stat;
-        })
-        .subscribe(result => {
-          this.generalStat = result;
-        });
-    }
-
-    // Emit the currentModule event: Home is not a module => null
-    this._globalSub.currentModuleSubject.next(null);
+    this.cluserOrSimpleFeatureGroup = this.config.SYNTHESE.ENABLE_LEAFLET_CLUSTER
+      ? (L as any).markerClusterGroup()
+      : new L.FeatureGroup();
   }
 
-  onEachFeature(feature, layer) {
-    layer.setStyle(this._mapService.originStyle);
+  ngOnInit() {
+    // Ensure cleaning of currentModule
+    this._moduleService.currentModule$.next(null);
+
+    this.getI18nLocale();
+
+    this._SideNavService.sidenav.open();
+
+    if (this.showGeneralStat) {
+      this.computeStatsBloc();
+    }
+  }
+
+  ngAfterViewInit() {
+    if (this.showLastObsMap) {
+      this.computeMapBloc();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(true);
+    this.destroy$.unsubscribe();
+  }
+
+  private computeMapBloc() {
+    this.cluserOrSimpleFeatureGroup.addTo(this._mapService.map);
+    this._syntheseApi
+      .getSyntheseData({}, { limit: 100, format: 'ungrouped_geom' })
+      .subscribe((data) => {
+        let geojsonLayer = this._mapService.createGeojson(data, true, this.onEachFeature);
+        this.cluserOrSimpleFeatureGroup.addLayer(geojsonLayer);
+        this._mapService.map.addLayer(this.cluserOrSimpleFeatureGroup);
+      });
+  }
+
+  private onEachFeature(feature, layer) {
     // Event from the map
     layer.on({
       click: () => {
@@ -69,7 +96,47 @@ export class HomeContentComponent implements OnInit {
           <b> Par</b>:  ${feature.properties.observers}
         `;
         layer.bindPopup(popup).openPopup();
-      }
+      },
     });
+  }
+
+  private computeStatsBloc() {
+    // Get general stats from Local Storage if exists
+    let needToRefreshStats = true;
+    let statsSerialized = localStorage.getItem('homePage.stats');
+    if (statsSerialized && JSON.parse(statsSerialized)) {
+      let stats = JSON.parse(statsSerialized);
+      this.generalStat = stats;
+
+      // Compute refresh need
+      const currentDatetime = new Date();
+      const cacheEndDatetime = new Date(stats.createdDate);
+      const milliSecondsTtl = this.config.FRONTEND.STAT_BLOC_TTL * 1000;
+      const futureTimestamp = cacheEndDatetime.getTime() + milliSecondsTtl;
+      cacheEndDatetime.setTime(futureTimestamp);
+
+      if (currentDatetime.getTime() < cacheEndDatetime.getTime()) {
+        needToRefreshStats = false;
+      }
+    }
+
+    if (needToRefreshStats) {
+      // Get general stats from Server
+      this._syntheseApi.getSyntheseGeneralStat().subscribe((stats) => {
+        stats['createdDate'] = new Date().toUTCString();
+        localStorage.setItem('homePage.stats', JSON.stringify(stats));
+        this.generalStat = stats;
+      });
+    }
+  }
+
+  private getI18nLocale() {
+    this.locale = this.translateService.currentLang;
+    // don't forget to unsubscribe!
+    this.translateService.onLangChange
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((langChangeEvent: LangChangeEvent) => {
+        this.locale = langChangeEvent.lang;
+      });
   }
 }

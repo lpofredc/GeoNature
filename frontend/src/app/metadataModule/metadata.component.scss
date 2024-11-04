@@ -2,20 +2,54 @@
   background-color: #f7f7f7 !important;
 }
 
-.mat-expansion-panel-header-title {
-  color: #03738c;
-}
-
-.mat-expansion-panel-header-description {
-}
-
 .mat-paginator {
   margin-top: 5px;
   justify-content: flex-start;
 }
 
+label {
+  font-size: 80%;
+  margin-top: 5px;
+  margin-bottom: 0px !important;
+}
+
+td {
+  vertical-align: top;
+  //padding: 10px;
+  text-align: center;
+}
+
+.tab-title {
+  display: flex;
+  padding-left: 24px;
+  padding-right: 30px;
+  margin-bottom: 10px;
+  width: 100% !important;
+}
+
+.mat-expansion-panel-header-title {
+  width: 100% !important;
+}
+
+tr,
+tbody {
+  width: 100%;
+}
+
+mat-expansion-panel {
+  mat-expansion-panel-header {
+    height: auto !important;
+  }
+}
+
+.tab-title > div {
+  //padding: 10px;
+  font-weight: bold;
+  padding-right: 5px;
+}
+
 .bt-edit {
-  font-size: 22px;
+  font-size: 30px;
   margin-right: 8px;
   display: flex;
 }
@@ -30,4 +64,59 @@
 
 .bold {
   font-weight: bold;
+}
+
+.row {
+  margin: 8px;
+}
+
+.li:hover {
+  cursor: pointer;
+}
+
+::ng-deeps .mat-slide-toggle.custom-toggle.mat-checked:not(.mat-disabled) .mat-slide-toggle-bar {
+  background-color: rgba(0, 128, 0, 0.322);
+}
+
+::ng-deeps .mat-slide-toggle.custom-toggle.mat-checked:not(.mat-disabled) .mat-slide-toggle-thumb {
+  background-color: green;
+}
+
+::ng-deeps .mat-slide-toggle.custom-toggle .mat-slide-toggle-bar {
+  background-color: rgba(255, 0, 0, 0.322);
+}
+
+::ng-deeps .mat-slide-toggle.custom-toggle .mat-slide-toggle-thumb {
+  background-color: red;
+}
+
+::ng-deeps .mat-slide-toggle.mat-disabled .mat-slide-toggle-label,
+.mat-slide-toggle.mat-disabled .mat-slide-toggle-thumb-container {
+  cursor: not-allowed !important;
+}
+
+::ng-deeps .mat-slide-toggle.mat-disabled .mat-slide-toggle-thumb {
+  cursor: not-allowed !important;
+}
+
+.alert-actor {
+  color: #cc2424;
+}
+
+.alert-actor mat-icon {
+  vertical-align: middle;
+}
+
+.alert-actor span {
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+[data-qa='pnx-metadata-dataset-name-Mon jeu de données'] .delete-btn {
+  background-color: black !important;
+}
+
+.metadata-area-value {
+  margin-top: 15px;
+  width: 100%;
 }

@@ -1,6 +1,6 @@
 <div class="card card-page center-in-div">
   <div class="card-header">
-    <h3 class="underlined main-color"> Mes informations </h3>
+    <h3 class="underlined main-color">Mes informations</h3>
   </div>
 
   <div class="card-body">
@@ -10,7 +10,9 @@
           <label
             for="nom_role"
             class="col-sm-3 col-form-label text-right"
-          >Nom</label>
+          >
+            Nom
+          </label>
           <div class="col-sm-9 col-xl-5">
             <input
               type="text"
@@ -18,14 +20,16 @@
               id="nom_role"
               placeholder="Nom"
               formControlName="nom_role"
-            >
+            />
           </div>
         </div>
         <div class="form-group row">
           <label
             for="prenom_role"
             class="col-sm-3 col-form-label text-right"
-          >Prenom</label>
+          >
+            Prenom
+          </label>
           <div class="col-sm-9 col-xl-5">
             <input
               type="text"
@@ -33,14 +37,16 @@
               id="prenom_role"
               placeholder="Prenom"
               formControlName="prenom_role"
-            >
+            />
           </div>
         </div>
         <div class="form-group row">
           <label
             for="email"
             class="col-sm-3 col-form-label text-right"
-          >Adresse mail</label>
+          >
+            Adresse mail
+          </label>
           <div class="col-sm-9 col-xl-5">
             <input
               type="text"
@@ -48,7 +54,7 @@
               id="email"
               placeholder="Email"
               formControlName="email"
-            >
+            />
           </div>
         </div>
       </div>
@@ -59,7 +65,9 @@
           <label
             for="identifiant"
             class="col-sm-3 col-form-label text-right"
-          >Login</label>
+          >
+            Login
+          </label>
           <div class="col-sm-9 col-xl-5">
             <input
               type="text"
@@ -67,7 +75,7 @@
               id="identifiant"
               placeholder="Login"
               formControlName="identifiant"
-            >
+            />
           </div>
         </div>
       </div>
@@ -80,16 +88,20 @@
           routerLink="password"
           mat-raised-button
           color="primary"
-        >Changer de mot de passe</a>
+        >
+          Changer de mot de passe
+        </a>
       </div>
-      <br>
+      <br />
 
       <mat-divider></mat-divider>
       <div class="form-group row mt-1">
         <label
           for="remarques"
           class="col-sm-3 col-form-label text-right"
-        > Remarques </label>
+        >
+          Remarques
+        </label>
         <div class="col-sm-9">
           <textarea
             id="remarques"
@@ -101,7 +113,7 @@
       </div>
 
       <div class="float-right">
-        <ng-container *ngIf="form.disabled else validation">
+        <ng-container *ngIf="form.disabled; else validation">
           <button
             type="button"
             mat-raised-button
@@ -136,7 +148,5 @@
         </ng-template>
       </div>
     </form>
-
   </div>
-
 </div>

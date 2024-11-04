@@ -4,58 +4,81 @@ FAQ
 Problèmes liés au frontend
 --------------------------
 
+Changement d'URL de GeoNature
+"""""""""""""""""""""""""""""
+
+Si vous souhaitez changer l'URL de l'API de GeoNature, il est nécessaire d'indiquer les nouvelles adresses dans le fichier de configuration principale (``geonature/config/geonature_config.toml`` pour GeoNature, ainsi que ceux de TaxHub et UsersHub)  ainsi que le fichier ``frontend/src/assets/config.json`` précisant l'URL de l'API au frontend. Pour mettre à jour ce fichier automatiquement, relancer le script ``install/05_install_frontend.sh``.
+ 
 Message d'erreur lors de la compilation du frontend
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
-- **Probleme lié à Node-sass**::
+- **Problème lié à Node-sass**::
 
     at module.exports (/home/myuser/geonature2/frontend/node_modules/node-sass/lib/binding.js:15:13) at Object.<anonymous> (/home/myuser/geonature2/frontend/node_modules/node-sass/lib/index.js:14:35)
 
 Lancer la commande : ``npm rebuild node-sass --force``
 
 
-- **Probleme de mémoire**
+- **Problème de mémoire**
 
-::
+Si vous avez un message d’erreur durant le build du frontend ressemblant à l’un des messages ci-dessous :
+
+.. code-block:: dmesg
 
     [26098:0x3d10640]    98298 ms: Scavenge 977.3 (1059.9) -> 962.2 (1059.9) MB, 18.5 / 0.0 ms  allocation failure 
     <--- JS stacktrace --->
     Cannot get stack trace in GC.
     FATAL ERROR: MarkingDeque::EnsureCommitted Allocation failed - process out of memory
 
-Cela vient d'un manque de mémoire vive lors de l'execution de la compilation frontend.
+.. code-block:: console
 
-Executer les commandes suivantes pour libérer de l'espace mémoire (https://stackoverflow.com/questions/26193654/node-js-catch-enomem-error-thrown-after-spawn):
+    $ npm run build
 
-::
+    > geonature@0.0.0 build
+    > ng build --aot=false --build-optimizer=false --configuration production
 
-    sudo fallocate -l 4G /swapfile Create a 4 gigabyte swapfile
-    sudo chmod 600 /swapfile Secure the swapfile by restricting access to root
-    sudo mkswap /swapfile Mark the file as a swap space
-    sudo swapon /swapfile Enable the swap
+    Warning: Support was requested for IE 11 in the project's browserslist configuration. IE 11 support is deprecated since Angular v12.
+    For more information, see https://angular.io/guide/browser-support
+    ✔ Browser application bundle generation complete.
+    Killed
+
+Cela vient d'un manque de mémoire vive lors du build du frontend.
+
+Vous pouvez essayer de stopper les backends durant le build du frontend :
+
+.. code-block:: console
+
+    $ sudo systemctl stop geonature
+    $ sudo systemctl stop geonature-worker
+    $ sudo systemctl stop taxhub
+    $ sudo systemctl stop usershub
+    $ cd frontend
+    $ nvm use
+    $ npm run build
+    $ sudo systemctl start geonature
+    $ sudo systemctl start geonature-worker
+    $ sudo systemctl start taxhub
+    $ sudo systemctl start usershub
 
 
-- **Problème pour trouver le chemin de lancement du frontend**
+Si cela n’est pas suffisant, vous pouvez également essayer de rajouter du swap à votre machine.
+Les commandes ci-dessous permettent de créer un fichier de swap de 4G (https://stackoverflow.com/questions/26193654/node-js-catch-enomem-error-thrown-after-spawn):
 
-::
+.. code-block:: console
 
-    Tried to find bootstrap code, but could not. Specify either statically analyzable bootstrap code or pass in an entryModule to the plugins options.
+    $ sudo fallocate -l 4G /swapfile  # Create a 4 gigabyte swapfile
+    $ sudo chmod 600 /swapfile  # Secure the swapfile by restricting access to root
+    $ sudo mkswap /swapfile  # Mark the file as a swap space
+    $ sudo swapon /swapfile  # Enable the swap
 
-Editez le fichier ``/home/<my_user>/geonature/frontend/tsconfig.json`` et renseignez les bons chemins vers le frontend de GeoNature :
 
-::
-
-    "@angular/*": ["/home/<my_user>/geonature/frontend/node_modules/@angular/*"],
-    "@geonature_common/*" : ["/home/<my_user>/geonature/frontend/src/app/GN2CommonModule/*"],
-    "@geonature/*" : ["/home/<my_user>/geonature/frontend/src/app/*"],
-    "@geonature_config/*" : ["/home/<my_user>/geonaturefrontend/src/conf/*"],
+.. warning:: Au redémarrage de la machine, il faudra réactiver le swap en exécutant à nouveau la dernière commande, à moins de rajouter une entrée dans votre fichier ``/etc/fstab``.
 
 - **Problème d'affichage du Frontend**
 
 Si vous rencontrez des problèmes de librairies Frontend qui n'ont pas bien été installées ou non accessibles, vous pouvez les réinstaller
 
-- Supprimer le répertoire ``frontend/node_modules``
-- Réinstaller les dépendances du Frontend : Dans le répertoire frontend, lancez la commande ``npm install``
+- Réinstaller les dépendances du Frontend : Dans le répertoire frontend, lancez la commande ``npm ci``
 - Reconstruire le Frontend : Dans le répertoire frontend, lancez la commande ``npm run build``
 
 Problèmes liés à la BDD
@@ -63,24 +86,4 @@ Problèmes liés à la BDD
 
 * Après un redémarrage de PostgreSQL (``sudo service postgresql restart``), celle-ci ne sera plus accessible par l'application et si vous tentez de vous connecter, vous aurez un message du type ``LoginError``. Cela est lié au fait que lorsqu'on redémarre PostgreSQL, il faut aussi relancer les API de GeoNature, car cela génère des erreurs de transaction et de session entre l'API et PostgreSQL.
 
-Donc à chaque ``sudo service postgresql restart``, lancer un ``sudo supervisorctl reload``
-
-
-
-Problème de lancement l'API lié à supervisor 
---------------------------------------------
-
-* Suite à une montée de version, si la commande ``sudo supervisorctl reload`` renvoie cette erreur:
-
-::
-
-    error: <class 'socket.error'>, [Errno 2] No such file or directory: file: /usr/lib/python2.7/socket.py line: 228
-
-Il s'agit d'une erreur lié à supervisor, qui se charge de lancer les applications. Redémarrer le service puis relancer la commande:
-
-::
-
-    sudo service supervisor start
-    sudo supervisorctl reload
-
-Retester le fonctionnement de l'application grâce à la commande ``ps -aux |grep gunicorn``, celle ci doit renvoyer plus d'une ligne
+Donc à chaque ``sudo systemctl restart postgresql``, lancer un ``sudo systemctl restart geonature``

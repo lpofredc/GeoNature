@@ -16,15 +16,14 @@
   </div>
   <div class="modal-body">
     <div class="form-inline">
-      <div class="form-group ">
+      <div class="form-group">
         <input
           class="form-control col-sm-12 col-md-12"
           placeholder="Nom du lieu"
           [formControl]="placeForm"
           type="text"
-        >
+        />
       </div>
-
     </div>
   </div>
 
@@ -33,7 +32,8 @@
       type="button"
       class="btn btn-success"
       (click)="addPlace(placeForm.value)"
-    >Enregistrer</button>
+    >
+      Enregistrer
+    </button>
   </div>
-
 </ng-template>

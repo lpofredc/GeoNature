@@ -1,7 +1,7 @@
 <div class="gn-panel">
   <div
     [ngClass]="['_gn-panel-header', state]"
-    (click)='animateMe()'
+    (click)="animateMe()"
   >
     <div class="gn-panel-header">
       <ng-content select=".gn-panel-header"></ng-content>
@@ -11,7 +11,7 @@
 
   <div
     class="gn-panel-content"
-    [@detailExpand]='state'
+    [@detailExpand]="state"
   >
     <ng-content select=".gn-panel-content"></ng-content>
   </div>

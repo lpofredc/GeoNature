@@ -5,6 +5,7 @@ import { MapListService } from '../../map-list/map-list.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { CommonService } from '../../service/common.service';
 import * as L from 'leaflet';
+import { ConfigService } from '@geonature/services/config.service';
 
 /**
  * Affiche une modale permettant de renseigner les coordonnées d'une observation, puis affiche un marker à la position renseignée.
@@ -13,17 +14,18 @@ import * as L from 'leaflet';
  */
 @Component({
   selector: 'pnx-gps',
-  templateUrl: 'gps.component.html'
+  templateUrl: 'gps.component.html',
 })
 export class GPSComponent extends MarkerComponent implements OnInit {
-  @ViewChild('modalContent') public modalContent: any;
+  @ViewChild('modalContent', { static: false }) public modalContent: any;
   constructor(
     public mapService: MapService,
     public modalService: NgbModal,
     public commonService: CommonService,
-    private _mapListServive: MapListService
+    private _mapListServive: MapListService,
+    public config: ConfigService
   ) {
-    super(mapService, commonService);
+    super(mapService, commonService, config);
   }
 
   ngOnInit() {

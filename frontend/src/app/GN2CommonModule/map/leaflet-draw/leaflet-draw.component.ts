@@ -2,32 +2,29 @@ import { Component, OnInit, Input, Output, EventEmitter, OnChanges } from '@angu
 import { Map } from 'leaflet';
 
 import { MapService } from '../map.service';
-import { AppConfig } from '@geonature_config/app.config';
 import { CommonService } from '../../service/common.service';
 import { leafletDrawOption } from '@geonature_common/map/leaflet-draw.options';
-import { GeoJSON } from 'togeojson';
+import { CustomIcon } from '@geonature/utils/leaflet-icon';
 
 import 'leaflet-draw';
 import * as L from 'leaflet';
+import { ConfigService } from '@geonature/services/config.service';
 
 delete L.Icon.Default.prototype['_getIconUrl'];
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png')
-});
+L.Icon.Default.mergeOptions(CustomIcon);
 
 /**
  * Ce composant permet d'activer le `plugin leaflet-draw <https://github.com/Leaflet/Leaflet.draw>`_
  */
 @Component({
   selector: 'pnx-leaflet-draw',
-  templateUrl: 'leaflet-draw.component.html'
+  templateUrl: 'leaflet-draw.component.html',
 })
 export class LeafletDrawComponent implements OnInit, OnChanges {
   public map: Map;
   private _currentDraw: any;
+  private _currentGeojson: any;
   private _Le: any;
   public drawnItems: any;
   // save the current layer type because the edite event do not send it...
@@ -36,7 +33,7 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
   public drawControl;
   /* pour pouvoir cacher / afficher le composant */
   @Input() bEnable = true; //
-  @Input() geojson: GeoJSON;
+  @Input() geojson: any;
   /* Boolean qui controle le zoom au point*/
   @Input() bZoomOnPoint = true;
   @Input() zoomLevelOnPoint = 8;
@@ -49,17 +46,28 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
    * <https://github.com/PnX-SI/GeoNature/blob/develop/frontend/src/modules/occtax/occtax-map-form/occtax-map-form.component.ts#L27>`_
    */
   @Input() options = leafletDrawOption;
-  @Input() zoomLevel = AppConfig.MAPCONFIG.ZOOM_LEVEL_RELEVE;
+  @Input() zoomLevel = null;
   /** Niveau de zoom à partir du quel on peut dessiner sur la carte */
-  @Output() layerDrawed = new EventEmitter<GeoJSON>();
+  @Output() layerDrawed = new EventEmitter<any>();
   @Output() layerDeleted = new EventEmitter<any>();
 
-  constructor(public mapservice: MapService, private _commonService: CommonService) {}
+  constructor(
+    public mapservice: MapService,
+    private _commonService: CommonService,
+    public config: ConfigService
+  ) {}
 
   ngOnInit() {
+    // HACK for leaflet draw compatibility
+    (window as any).type = true;
     this.map = this.mapservice.map;
+    this.zoomLevel = this.zoomLevel || this.config.MAPCONFIG.ZOOM_LEVEL_RELEVE;
     this._Le = L as any;
     this.enableLeafletDraw();
+  }
+
+  ngOnDestroy() {
+    (window as any).type = undefined;
   }
 
   enableLeafletDraw() {
@@ -72,7 +80,9 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
       this.disableDrawControl();
     }
 
-    this.map.on(this._Le.Draw.Event.DRAWSTART, e => {
+    this.map.on(this._Le.Draw.Event.DRAWSTART, (e) => {
+      this._currentGeojson =
+        this._currentGeojson == null ? { geometry: this.geojson } : this._currentGeojson;
       this.mapservice.removeAllLayers(this.map, this.mapservice.fileLayerFeatureGroup);
       if (this.map.getZoom() < this.zoomLevel) {
         this._commonService.translateToaster('warning', 'Map.ZoomWarning');
@@ -102,46 +112,50 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
     });
 
     // on draw layer created
-    this.map.on(this._Le.Draw.Event.CREATED, e => {
+    this.map.on(this._Le.Draw.Event.CREATED, (e) => {
+      this.mapservice.removeAllLayers(this.map, this.mapservice.leafletDrawFeatureGroup);
       if (this.map.getZoom() < this.zoomLevel) {
         this._commonService.translateToaster('warning', 'Map.ZoomWarning');
         this.layerDrawed.emit({ geojson: null });
       } else {
         this._currentDraw = (e as any).layer;
-        if ((e as any).layerType !== 'marker') {
-          this._currentDraw = this._currentDraw.setStyle(this.mapservice.searchStyle);
-        }
+
         this.currentLayerType = (e as any).layerType;
         this.mapservice.leafletDrawFeatureGroup.addLayer(this._currentDraw);
         const geojson = this.getGeojsonFromFeatureGroup(this.currentLayerType);
-        // set firLayerFromMap = false because we just draw a layer
-        // the boolean change MUST be before the output fire (emit)
-        this.mapservice.firstLayerFromMap = false;
         this.mapservice.setGeojsonCoord(geojson);
+        this._currentGeojson = geojson;
         this.layerDrawed.emit(geojson);
       }
     });
 
     // on draw edited
-    this.mapservice.map.on(this._Le.Draw.Event.EDITED, e => {
-      // output
+    this.mapservice.map.on(this._Le.Draw.Event.EDITED, (e) => {
       const geojson = this.getGeojsonFromFeatureGroup(this.currentLayerType);
-      // set firLayerFromMap = false because we just edit a layer
-      // the boolean change MUST be before the output fire (emit)
-      this.mapservice.firstLayerFromMap = false;
       this.mapservice.setGeojsonCoord(geojson);
+      this._currentGeojson = geojson;
       this.layerDrawed.emit(geojson);
     });
 
     // on layer deleted
-    this.map.on(this._Le.Draw.Event.DELETESTART, e => {
+    this.map.on(this._Le.Draw.Event.DELETED, (e) => {
       this.layerDeleted.emit();
     });
 
-    this.map.on(this._Le.Draw.Event.DELETESTOP, e => {
+    this.map.on(this._Le.Draw.Event.DELETESTOP, (e) => {
       const geojson = this.getGeojsonFromFeatureGroup(this.currentLayerType);
       if (geojson) {
         this.layerDrawed.emit(geojson);
+        this.mapservice.setGeojsonCoord(geojson);
+      }
+    });
+
+    this.map.on(this._Le.Draw.Event.DRAWSTOP, (e) => {
+      if (this._currentGeojson) {
+        const layer: L.Layer = this.mapservice.createGeojson(this._currentGeojson.geometry, false);
+        if (!this.mapservice.leafletDrawFeatureGroup.hasLayer(layer)) {
+          this.loadDrawfromGeoJson(this._currentGeojson.geometry);
+        }
       }
     });
   }
@@ -158,6 +172,8 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
   }
 
   loadDrawfromGeoJson(geojson) {
+    // load leaflet draw from an existing geojson
+    // no refire events
     let layer;
     if (geojson.type === 'LineString' || geojson.type === 'MultiLineString') {
       const latLng = L.GeoJSON.coordsToLatLngs(
@@ -177,7 +193,6 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
       this.mapservice.map.fitBounds(layer.getBounds());
     } else if (geojson.type === 'Point') {
       // marker
-      console.log(geojson);
       layer = L.marker(new L.LatLng(geojson.coordinates[1], geojson.coordinates[0]), {});
       this.mapservice.leafletDrawFeatureGroup.addLayer(layer);
       if (this.bZoomOnPoint) {
@@ -200,10 +215,6 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
     }
     // disable point event on the map
     this.mapservice.setEditingMarker(false);
-    // send observable
-    let new_geojson = this.mapservice.leafletDrawFeatureGroup.toGeoJSON();
-    new_geojson = (new_geojson as any).features[0];
-    this.mapservice.setGeojsonCoord(new_geojson);
   }
 
   // cache le draw control
@@ -212,6 +223,7 @@ export class LeafletDrawComponent implements OnInit, OnChanges {
       return;
     }
     this.mapservice.leafletDrawFeatureGroup.clearLayers();
+    this._currentGeojson = null;
     this.drawControl.remove();
   }
 

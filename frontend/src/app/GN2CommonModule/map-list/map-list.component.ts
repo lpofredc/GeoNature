@@ -13,7 +13,7 @@ export interface ColumnActions {
 @Component({
   selector: 'pnx-map-list',
   templateUrl: './map-list.component.html',
-  styleUrls: ['./map-list.component.scss']
+  styleUrls: ['./map-list.component.scss'],
 })
 export class MapListComponent implements OnInit, AfterViewInit {
   public layerDict: any;
@@ -22,7 +22,10 @@ export class MapListComponent implements OnInit, AfterViewInit {
   @Input() idName: string;
   @Input() zoomOnLayer = true;
 
-  constructor(private _ms: MapService, public mapListService: MapListService) {}
+  constructor(
+    private _ms: MapService,
+    public mapListService: MapListService
+  ) {}
 
   ngOnInit() {
     // set the idName in the service
@@ -39,7 +42,7 @@ export class MapListComponent implements OnInit, AfterViewInit {
     this.mapListService.layerDict[feature.id] = layer;
     layer.setStyle(this.mapListService.originStyle);
     layer.on({
-      click: e => {
+      click: (e) => {
         // toggle style
         this.mapListService.toggleStyle(layer);
         // observable
@@ -48,7 +51,7 @@ export class MapListComponent implements OnInit, AfterViewInit {
         if (feature.properties.leaflet_popup) {
           layer.bindPopup(feature.properties.leaflet_popup).openPopup();
         }
-      }
+      },
     });
   }
 }

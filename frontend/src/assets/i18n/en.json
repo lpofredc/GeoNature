@@ -1,12 +1,12 @@
 {
   "Title": "GeoNature",
   "Home": "Home",
-  "Sel_lang": "Choose Language",
+  "Sel_lang": "Choose the language",
   "Language": "Language",
   "Languages": {
     "English": "English",
-    "French": "French",
-    "Chinese": "Chinese"
+    "French": "Français (French)",
+    "Chinese": "中文 (Chinese)"
   },
   "Email": "Email",
   "Username": "Username",
@@ -23,7 +23,7 @@
   "Columns": "Columns",
   "Cancel": "Cancel",
   "Delete": "Delete",
-  "NotAllowed": "You do not have the rights to perform this action",
+  "NotAllowed": "You do not have the permissions to perform this action",
   "LoginError": "Login or password incorrect",
   "DownloadData": "Download data",
   "Download": "Download",
@@ -48,7 +48,7 @@
   },
   "Form": {
     "RefreshFilters": "Refresh filters",
-    "AdvancedFilters": "Filtres avancés",
+    "AdvancedFilters": "Advanced filters",
     "OtherFilters": "Other filter",
     "Organism": "Organism(s)"
   },
@@ -196,7 +196,10 @@
     "ExportModuleName": "Export module"
   },
   "Synthese": {
-    "DeleteObs": "Delete this observation"
+    "DeleteObs": "Delete this observation",
+    "Map": {
+      "AreasToggleBtn": "Areas"
+    }
   },
   "MyAccount": "My account",
   "CreateAccount": "Create an account",

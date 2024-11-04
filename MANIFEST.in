@@ -1,0 +1,5 @@
+include VERSION
+include LICENSE
+include README.md
+include backend/requirements-common.in
+include backend/requirements-dependencies.in

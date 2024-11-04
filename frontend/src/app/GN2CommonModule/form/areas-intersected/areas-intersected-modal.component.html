@@ -4,7 +4,7 @@
   let-d="dismiss"
 >
   <div class="modal-header">
-    <h5 class="modal-title">{{'Releve.InfoGeo' | translate }} </h5>
+    <h5 class="modal-title">{{ 'Releve.InfoGeo' | translate }}</h5>
     <button
       type="button"
       class="close"
@@ -16,7 +16,8 @@
   </div>
   <div class="modal-body">
     <p *ngFor="let area of areasIntersected">
-      <b> {{area.type_name}}:</b> {{area.areas}}
+      <b>{{ area.type_name }}:</b>
+      {{ area.areas }}
     </p>
   </div>
 </ng-template>
@@ -25,7 +26,7 @@
   id="info-geo-button"
   class="btn btn-sm btn-outline-shadow clickable"
   (click)="openIntesectionModal(content)"
-  matTooltip="{{'Releve.InfoGeo' | translate }} "
+  matTooltip="{{ 'Releve.InfoGeo' | translate }} "
 >
   <i
     class="fa fa-globe"

@@ -1,145 +1,246 @@
-#!/bin/bash
-parentdir="$(dirname "$(pwd)")"
-currentdir=${PWD##*/}
-myrootpath=`pwd`/..
+#!/usr/bin/env bash
 
-echo 'You are executing this script FROM '`pwd`' AND your oldgeonature directory is in '$parentdir'/geonature_old'
-read -p "Press any key to exit. Press Y or y to continue."  choice
-echo
-if [ $choice ]
-then
-  if [ $choice != 'y' ] && [ $choice != 'Y' ] && [ $choice ]
-  then
-    echo "Exit"
-    exit
-  fi
-else
-  echo "Exit"
-  exit
-fi
+SERVICES=("geonature" "geonature-worker" "taxhub" "usershub")
 
-echo "OK, let's migrate GeoNature version..."
-
-. $myrootpath/geonature_old/config/settings.ini
-
-cp $myrootpath/geonature_old/config/settings.ini config/settings.ini
-cp $myrootpath/geonature_old/config/geonature_config.toml config/geonature_config.toml
-cp -r $myrootpath/geonature_old/frontend/src/custom/* frontend/src/custom/
-
-if [ -d "${myrootpath}/geonature_old/backend/static/images" ]
-then
-  cp -r $myrootpath/geonature_old/backend/static/images/* backend/static/images
-fi
-if [ -d "${myrootpath}/geonature_old/backend/static/mobile" ]
-then
-  cp -r $myrootpath/geonature_old/backend/static/mobile/* backend/static/mobile
-fi
-if [ -d "${myrootpath}/geonature_old/backend/static/exports" ]
-then
-  cp -r $myrootpath/geonature_old/backend/static/exports/* backend/static/exports
-fi
-cp $myrootpath/geonature_old/frontend/src/favicon.ico frontend/src/favicon.ico
-cp -r $myrootpath/geonature_old/external_modules/* external_modules
-# On supprime le lien symbolique qui pointe vers geonature_old/contrib/occtax et validation
-rm -r external_modules/occtax
-rm -r external_modules/validation
-rm -r external_modules/occhab
-# Rapatrier le fichier de conf de Occtax et de validation
-cp $myrootpath/geonature_old/contrib/occtax/config/conf_gn_module.toml $myrootpath/$currentdir/contrib/occtax/config/conf_gn_module.toml
-cp $myrootpath/geonature_old/contrib/gn_module_validation/config/conf_gn_module.toml $myrootpath/$currentdir/contrib/gn_module_validation/config/conf_gn_module.toml
-cp $myrootpath/geonature_old/contrib/gn_module_occhab/config/conf_gn_module.toml $myrootpath/$currentdir/contrib/gn_module_occhab/config/conf_gn_module.toml
-
-# On recrée le lien symbolique sur le nouveau répertoire de GeoNature
-ln -s $myrootpath/$currentdir/contrib/occtax external_modules/occtax
-ln -s $myrootpath/$currentdir/contrib/gn_module_validation external_modules/validation
-ln -s $myrootpath/$currentdir/contrib/gn_module_occhab external_modules/occhab
-
-cp -r $myrootpath/geonature_old/frontend/src/external_assets/* $myrootpath/$currentdir/frontend/src/external_assets/
-
-# # On recrée le lien symbolique sur le nouveau répertoire geonature
-# ln -s $myrootpath/$currentdir/contrib/occtax/frontend/assets $myrootpath/$currentdir/frontend/src/external_assets/occtax
-
-mkdir $myrootpath/$currentdir/var
-mkdir $myrootpath/$currentdir/var/log
-cp $myrootpath/geonature_old/var/log/gn_errors.log $myrootpath/$currentdir/var/log/
-
-
-# Création du répertoitre static et rapatriement des médias
-if [ ! -d 'backend/static/' ]
-then
-  mkdir backend/static
-fi
-
-if [ ! -d 'backend/static/medias/' ]
-then
-  mkdir backend/static/medias
-fi
-
-if [ -d "${myrootpath}/geonature_old/backend/static/medias" ]
-then
-  cp -r $myrootpath/geonature_old/backend/static/medias/* backend/static/medias
-fi
-
-if [ ! -d 'backend/static/shapefiles/' ]
-then
-  mkdir backend/static/shapefiles
-fi
-
-cd $myrootpath/$currentdir/frontend
-
-export NVM_DIR="$HOME/.nvm"
- [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-nvm install
-nvm use
-npm ci --only=prod
-
-# Lien symbolique vers le dossier static du backend (pour le backoffice)
-ln -s $myrootpath/$currentdir/frontend/node_modules $myrootpath/$currentdir/backend/static
-
-cd $myrootpath/$currentdir/backend
-
-if [ -d 'venv/' ]
-then
-  sudo rm -rf venv
-fi
-
-if [[ $python_path ]]; then
-  echo "Installation du virtual env..."
-  python3 -m virtualenv -p $python_path venv
-else
-  python3 -m virtualenv venv
-fi
-
-source venv/bin/activate
-pip install -r requirements.txt
-# Installation des dépendances des modules
-# Boucle sur les liens symboliques de external_modules
-for D in $(find ../external_modules  -type l | xargs readlink) ; do
-    # si le lien symbolique exisite
-    if [ -e "$D" ] ; then
-        cd ${D}
-        cd backend   
-        if [ -f 'requirements.txt' ]
-        then
-            pip install -r requirements.txt
-        fi
+newdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." &> /dev/null && pwd )"
+if (($# > 0)); then
+    if [ -d "$1" ]; then
+        olddir="$(realpath "$1")"
+    else
+        echo "Usage: $0 [OLD_GEONATURE_DIR]"
+        exit 1
     fi
+else
+    olddir="$(dirname -- "${newdir}")/geonature_old"
+fi
+
+if [ ! -d "${newdir}/backend" ] || [ ! -d "${newdir}/frontend" ] || [ ! -f "${newdir}/VERSION" ]; then
+    echo "Le nouveau dossier '${newdir}' ne semble pas contenir une installation GeoNature, arrêt."
+    exit 1
+fi
+if [ ! -d "${olddir}/backend" ] || [ ! -d "${olddir}/frontend" ] || [ ! -f "${olddir}/VERSION" ]; then
+    echo "L’ancien dossier '${olddir}' ne semble pas contenir une installation GeoNature, arrêt."
+    exit 1
+fi
+
+echo "Nouveau dossier GeoNature : ${newdir} ($(cat "${newdir}/VERSION"))"
+echo "Ancien dossier GeoNature : ${olddir} ($(cat "${olddir}/VERSION"))"
+
+
+read -p "Appuyer sur une touche pour quitter. Appuyer sur Y ou y pour continuer. " choice
+if [ "$choice" != 'y' ] && [ "$choice" != 'Y' ]; then
+    echo "Arrêt de la migration."
+    exit
+else
+    echo "Lancement de la migration..."
+fi
+
+echo "Arrêt des services…"
+for service in ${SERVICES[@]}; do
+    sudo systemctl stop "${service}"
 done
 
-cd $myrootpath/$currentdir/
-python geonature_cmd.py install_command
+echo "Copie des fichiers de configuration…"
+# Copy all config files (installation, GeoNature, modules)
+cp -n ${olddir}/config/*.{ini,toml} ${newdir}/config/
+if [ -f "${olddir}/environ" ]; then
+  cp -n "${olddir}/environ" "${newdir}/environ"
+fi
 
-echo "Update configurations"
-geonature update_configuration --build=false
-geonature generate_frontend_modules_route
-geonature generate_frontend_tsconfig_app
-geonature generate_frontend_tsconfig
-geonature update_module_configuration occtax --build=false
-geonature update_module_configuration validation --build=false
-geonature update_module_configuration occhab --build=false
+if [ -d "${olddir}/custom" ]; then
+    echo "Copie de la customisation…"
+    mkdir -p "${newdir}"/custom/
+    cp -n -r "${olddir}"/custom/* "${newdir}"/custom/
+fi
 
-geonature frontend_build
+echo "Vérification de la robustesse de la SECRET_KEY…"
+sk_len=$(grep -E '^SECRET_KEY' "${newdir}/config/geonature_config.toml" | tail -n 1 | sed 's/SECRET_KEY = ['\''"]\(.*\)['\''"]/\1/' | wc -c)
+if [ $sk_len -lt 20 ]; then
+    sed -i "s|^SECRET_KEY = .*$|SECRET_KEY = '`openssl rand -hex 32`'|" "${newdir}/config/geonature_config.toml"
+fi
 
-sudo supervisorctl reload
+echo "Déplacement des anciens fichiers personnalisés ..."
+# before 2.12
+if [ ! -f "${newdir}/custom/css/frontend.css" ] && [ -f "${olddir}/frontend/src/assets/custom.css" ] \
+    && ! cmp -s "${olddir}/frontend/src/assets/custom.css" "${newdir}/backend/static/css/frontend.css"; then
+  mkdir -p "${newdir}/custom/css/"
+  cp "${olddir}/frontend/src/assets/custom.css" "${newdir}/custom/css/frontend.css"
+fi
+# before 2.7
+if [ ! -f "${newdir}/custom/css/frontend.css" ] && [ -f "${olddir}/frontend/src/custom/custom.scss" ] \
+    && ! cmp -s "${olddir}/frontend/src/custom/custom.scss" "${newdir}/backend/static/css/frontend.css"; then
+  mkdir -p "${newdir}/custom/css/"
+  cp "${olddir}/frontend/src/custom/custom.scss" "${newdir}/custom/css/frontend.css"
+fi
+# before 2.12
+for img in login_background.jpg logo_sidebar.jpg logo_structure.png; do
+  if [ ! -f "${newdir}/custom/images/${img}" ] && [ -f "${olddir}/frontend/src/custom/images/${img}" ] \
+    && ! cmp -s "${olddir}/frontend/src/custom/images/${img}" "${newdir}/backend/static/images/${img}"; then
+    mkdir -p "${newdir}/custom/images/"
+    cp "${olddir}/frontend/src/custom/images/${img}" "${newdir}/custom/images/${img}"
+  fi
+done
+# before 2.12
+if [ ! -f "${newdir}/custom/images/favicon.ico" ] && [ -f "${olddir}/frontend/src/favicon.ico" ] \
+    && ! cmp -s "${olddir}/frontend/src/favicon.ico" "${newdir}/backend/static/images/favicon.ico"; then
+  mkdir -p "${newdir}/custom/images/"
+  cp "${olddir}/frontend/src/favicon.ico" "${newdir}/custom/images/favicon.ico"
+fi
+# before 2.12
+if [ ! -f "${newdir}/custom/css/metadata_pdf_custom.css" ] && [ -f "${olddir}/backend/static/css/custom.css" ] \
+    && ! cmp -s "${olddir}/backend/static/css/custom.css" "${newdir}/backend/static/css/metadata_pdf_custom.css"; then
+  mkdir -p "${newdir}/custom/css/"
+  cp "${olddir}/backend/static/css/custom.css" "${newdir}/custom/css/metadata_pdf_custom.css"
+fi
+
+
+echo "Mise à jour de node si nécessaire …"
+cd "${newdir}"/install
+./00_install_nvm.sh
+export NVM_DIR="$HOME/.nvm"
+ [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+cd "${newdir}/frontend"
+nvm use
+
+echo "Installation des dépendances node du frontend …"
+cd "${newdir}/frontend"
+npm ci --only=prod
+
+echo "Installation des dépendances node du backend …"
+cd "${newdir}/backend/static"
+npm ci --only=prod
+
+
+echo "Mise à jour du backend …"
+cd "${newdir}/install"
+./01_install_backend.sh
+source "${newdir}/backend/venv/bin/activate"
+
+echo "Installation des modules externes …"
+# Modules before 2.11
+if [ -d "${olddir}/external_modules/" ]; then
+    cd "${newdir}/backend"
+    for module in ${olddir}/external_modules/*; do
+        if [ ! -L "${module}" ]; then
+            echo "N’est pas un lien symbolique, ignore : ${module}"
+            continue
+        fi
+        name=$(basename ${module})
+        echo "Installation du module ${name} …"
+        target=$(realpath "$(readlink "${module}")")
+        moduledir="${target/#${olddir}/${newdir}}"
+        oldmoduledir="${target/#${newdir}/${olddir}}"
+        if [ ! -f "${newdir}/config/${name}_config.toml" ] && [ -f "${oldmoduledir}/config/conf_gn_module.toml" ]; then
+            echo "Récupération de l’ancien fichier de configuration…"
+            if [ "${oldmoduledir}" != "${moduledir}" ]; then
+                cp "${oldmoduledir}/config/conf_gn_module.toml" "${newdir}/config/${name}_config.toml"
+            else
+                mv "${moduledir}/config/conf_gn_module.toml" "${newdir}/config/${name}_config.toml"
+            fi
+        fi
+        geonature install-gn-module "${moduledir}" "${name^^}" --build=false --upgrade-db=false
+    done
+fi
+cd "${newdir}/frontend/external_modules"
+# Modules since 2.11
+if [ -d "${olddir}/frontend/external_modules/" ]; then
+    for module in ${olddir}/frontend/external_modules/*; do
+        if [ ! -L "${module}" ]; then
+            echo "N’est pas un lien symbolique, ignore : ${module}"
+            continue
+        fi
+        name=$(basename ${module})
+        echo "Installation du module ${name} …"
+        target=$(realpath "$(readlink "${module}")")
+        if [ "$(basename ${target})" != "frontend" ]; then
+            "Erreur, ne pointe pas vers un dossier frontend : ${module}"
+            exit 1
+        fi
+        moduledir=$(dirname "${target/#${olddir}/${newdir}}")
+        oldmoduledir=$(dirname "${target/#${newdir}/${olddir}}")
+        if [ ! -f "${newdir}/config/${name}_config.toml" ] && [ -f "${oldmoduledir}/config/conf_gn_module.toml" ]; then
+            echo "Récupération de l’ancien fichier de configuration…"
+            if [ "${oldmoduledir}" != "${moduledir}" ]; then
+                cp "${oldmoduledir}/config/conf_gn_module.toml" "${newdir}/config/${name}_config.toml"
+            else
+                mv "${moduledir}/config/conf_gn_module.toml" "${newdir}/config/${name}_config.toml"
+            fi
+        fi
+        geonature install-gn-module "${moduledir}" "${name^^}" --build=false --upgrade-db=false
+    done
+fi
+
+echo "Mise à jour des scripts systemd…"
+cd ${newdir}/install
+if [ -f /etc/systemd/system/geonature-reload.path ]; then  # before GN 2.12
+    sudo systemctl stop geonature-reload.path
+    sudo systemctl disable geonature-reload.path
+    sudo rm /etc/systemd/system/geonature-reload.path
+fi
+./02_configure_systemd.sh
+cd ${newdir}/
+
+echo "Mise à jour de la configuration Apache …"
+cd "${newdir}/install/"
+./06_configure_apache.sh
+sudo apachectl configtest && sudo systemctl reload apache2 || echo "Attention, configuration Apache incorrecte !"
+
+# before GeoNature 2.10
+if [ -f "/var/log/geonature.log" ]; then
+    echo "Déplacement des fichiers de logs /var/log/geonature.log → /var/log/geonature/geonature.log …"
+    sudo mkdir -p /var/log/geonature/
+    sudo mv /var/log/geonature.log /var/log/geonature/geonature.log
+    sudo chown $USER: -R /var/log/geonature/
+fi
+
+# Update the API ENDPOINT in frontend configuration file
+api_end_point=$(geonature get-config API_ENDPOINT)
+api_end_point=${api_end_point/'http:'/''}
+echo "Set API_ENDPOINT to "$api_end_point" in frontend configuration file..."
+echo '{"API_ENDPOINT":"'${api_end_point}'"}' > ${newdir}/frontend/src/assets/config.json
+
+echo "Mise à jour des fichiers de configuration frontend et rebuild du frontend…"
+geonature update-configuration
+
+echo "Mise à jour de la base de données…"
+# Si occtax est installé, alors il faut le mettre à jour en version 4c97453a2d1a (min.)
+# *avant* de mettre à jour GeoNature (contrainte NOT NULL sur id_source dans la synthèse)
+# Voir https://github.com/PnX-SI/GeoNature/issues/2186#issuecomment-1337684933
+geonature db heads | grep "(occtax)" > /dev/null && geonature db upgrade occtax@4c97453a2d1a
+geonature db autoupgrade || exit 1
+geonature upgrade-modules-db || exit 1
+# Mise à jour manuel de validation, la branche Alambic ayant été rajouté avec GN 2.13
+geonature db heads | grep "(validation)" > /dev/null && geonature db upgrade validation@head
+
+# On déplace les médias à la fin de la migration, pour ne pas se retrouver avec une nouvelle installation
+# GeoNature cassé mais les médias déjà déplacé de l’ancien GN au nouveau GN non fonctionnel.
+echo "Déplacement des anciens fichiers static vers les médias …"  # before GN 2.12
+cd "${olddir}/backend"
+if [ -d static/medias ]; then mkdir -p media/attachments; mv static/medias/* media/attachments/; fi  # medias becomes attachments
+if [ -d static/pdf ]; then mkdir -p media; mv static/pdf media/; fi
+if [ -d static/exports ]; then mkdir -p media; mv static/exports media/; fi
+if [ -d static/geopackages ]; then mkdir -p media; mv static/geopackages media/; fi
+if [ -d static/shapefiles ]; then mkdir -p media; mv static/shapefiles media/; fi
+if [ -d static/mobile ]; then mkdir -p media; mv static/mobile media/; fi
+echo "Déplacement des médias …"
+shopt -s nullglob
+for dir in "${olddir}"/backend/media/*; do
+    if [ -d "${newdir}"/backend/media/$(basename "${dir}") ]; then
+        for subdir in "${dir}"/*; do
+            mv -n "${subdir}" "${newdir}"/backend/media/$(basename "${dir}")/
+        done
+    else
+        mv -n "${dir}" "${newdir}"/backend/media/
+    fi
+done
+shopt -u nullglob
+
+echo "Redémarrage des services…"
+for service in ${SERVICES[@]}; do
+    sudo systemctl start "${service}"
+done
 
 deactivate
+
+echo "Migration terminée"

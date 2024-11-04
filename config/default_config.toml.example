@@ -1,16 +1,13 @@
 ###############################################################################
-# Liste complète des paramètres et de leurs valeurs par défaut
-# 
-# UTILISATION : piochez des paramètres dans ce fichier et intégrez les au
-#     fichier 'config/geonature_config.toml'.
+# Liste (presque) complète des paramètres et de leurs valeurs par défaut
 #
-# ATTENTION : Les paramètres qui ne sont pas dans une section (entre crochets) 
+# UTILISATION : piochez les paramètres que vous souhaitez surcoucher dans ce
+#     fichier et intégrez les au fichier 'config/geonature_config.toml'.
+#
+# ATTENTION : Les paramètres qui ne sont pas dans une section (entre crochets)
 #     doivent être au début du fichier !
 #     Les paramètres dans une section doivent être maintenus dans leur section.
 #
-# NOTES : après toute modification dans ce fichier, il est nécessaire de 
-#     mettre à jour GeoNature à l'aide de la commande :
-#     `geonature update_configuration`
 ###############################################################################
 
 # Base de données
@@ -26,10 +23,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = true
 # Application
 
 # Nom de l'application dans la page d'accueil.
-appName = "GeoNature 2"
-
-# Nom du fichier du logo present dans le dossier custom/images
-LOGO_STRUCTURE_FILE = 'logo_structure.png'
+appName = "GeoNature"
 
 # Langue par défaut utilisée par l'application.
 # Utilisée pour l'instant seulement avec les nomenclatures.
@@ -50,9 +44,6 @@ API_ENDPOINT = "http://url.com/geonature/api"
 # URL de l'API de Taxhub
 API_TAXHUB = "http://127.0.0.1:5000/api/"
 
-# Identifiant de l'appplication GeoNature (id_application) dans UsersHub
-ID_APPLICATION_GEONATURE = 3
-
 # Type de session
 SESSION_TYPE = "filesystem"
 
@@ -68,25 +59,21 @@ COOKIE_AUTORENEW = true
 # Capturer toutes les exceptions (=true) ou pas (=false)
 TRAP_ALL_EXCEPTIONS = false
 
-# Niveau de Log pour l'API. Par défaut ERROR (=40)
-# Cf. https://docs.python.org/3/library/logging.html#logging-levels
-API_LOG_LEVEL = 40
-
-# Code EPSG pour les geom locaux en base de données
-LOCAL_SRID = 2154
-
 # MTD (pour la connexion au webservice de métadonnées de l'INPN)
 XML_NAMESPACE = "{http://inpn.mnhn.fr/mtd}"
 MTD_API_ENDPOINT = "https://preprod-inpn.mnhn.fr/mtd"
 
-# Fichiers
-# BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-# Chemin du dossier où stocker les fichiers depuis la racine du dossier 'backend'
-UPLOAD_FOLDER = "static/medias"
+# Configuration de l'accès sans authentication. Renseigner l’identifiant de l’utilisateur public.
+PUBLIC_ACCESS_USERNAME = ""
 
 # Active (=true) ou pas (=false) l'envoi d'email pour chaque erreur du backend de GeoNature
 # Attention : si activé, il est nécessaire de remplir la secetion 'MAIL_CONFIG'.
 MAIL_ON_ERROR = false
+
+# Notifications (true / false)
+NOTIFICATIONS_ENABLED = true
+
+MEDIA_CLEAN_CRONTAB = "0 1 * * *"
 
 [USERSHUB]
     # URL de l'application Usershub
@@ -109,8 +96,16 @@ MAIL_ON_ERROR = false
     # Laisser en commentaire si le serveur n'a pas de limite.
     # MAIL_MAX_EMAILS = 100
     MAIL_ASCII_ATTACHMENTS = false
-    # Email(s) où envoyer les erreurs générées par le backend de GeoNature
-    ERROR_MAIL_TO = ["email@email.com", "email2@email.com"]
+    # Email(s) où envoyer les erreurs générées par le backend de GeoNature.
+    # Deux syntaxes alternatives sont autorisées pour ce paramètre :
+    # - une chaine contenant un ou plusieurs emails séparés par des
+    #   virgules (exemple ci-dessous).
+    # - une liste de chaine contenant un email.
+    # Un email encadré par des chevrons (<>) peut être précédé par un
+    # libellé qui sera utilisé lors de l'envoi.
+    # Les espaces présents en début et fin de chaine ainsi qu'avant et
+    # après les virgules sont ignorés.
+    ERROR_MAIL_TO = ["Prénom NOM <email@email.com>", "email2@email.com"]
 
 # CAS authentification (Optionnel, remplace l'authentification locale via UsersHub)
 [CAS_PUBLIC]
@@ -123,8 +118,17 @@ MAIL_ON_ERROR = false
 
 [CAS.CAS_USER_WS]
     URL = "https://inpn2.mnhn.fr/authentication/information"
+    BASE_URL = "https://inpn2.mnhn.fr/authentication/"
     ID = "mon_id"
     PASSWORD = "mon_pass"
+
+# Connexion avec le WS MTD
+[MTD]
+    # Modules auxquels les JDD sont automatiquement associés
+    JDD_MODULE_CODE_ASSOCIATION = ["OCCTAX", "OCCHAB"]
+    # Filter les JDD par id_instance
+    # ID_INSTANCE_FILTER = "null"
+    SYNC_LOG_LEVEL = "INFO"
 
 [BDD]
     id_area_type_municipality = 25
@@ -147,12 +151,26 @@ MAIL_ON_ERROR = false
 
     # Affiche un bloc de stat sur la page d'accueil
     DISPLAY_STAT_BLOC = true
+    # Périodicité du renouvellement du cache des stats (local storage)
+    # dans le navigateur en secondes. Défaut : 3600s (= 1h)
+    STAT_BLOC_TTL = 3600
 
     # Affiche la carte des 100 dernieres observations sur la page d'accueil
     DISPLAY_MAP_LAST_OBS = true
 
     # Passe le frontend en mode multilingue (non implémenté pour l'instant)
     MULTILINGUAL = false
+
+    #Affiche les emails des observateurs dans les modules Synthese et Validation
+    DISPLAY_EMAIL_INFO_OBS = true
+
+    # Ajoute du contenu à l'email validation / synthèse
+
+    #Information de l'observation à mettre dans l'email
+    DISPLAY_EMAIL_DISPLAY_INFO = ["NOM_VERN", "DATE", "COMMUNES", "MEDIAS"]
+
+    # Activer l'affichage des informations liées aux profils de taxons
+    ENABLE_PROFILES = true
 
 # Configuration de l'affichage des cartes dans GeoNature
 [MAPCONFIG]
@@ -171,14 +189,41 @@ MAIL_ON_ERROR = false
     # Zoom appliqué sur la carte lors du clic sur une liste
     ZOOM_ON_CLICK = 16
 
+    # activation d'un boutton de géolocalisation sur la carte
+    GEOLOCATION = true
+
+    # Restreindre la recherche OpenStreetMap (sur la carte dans l'encart "Rechercher un lieu")
+    # à certains pays. Les pays doivent être au format ISO_3166-1 :
+    # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 et séparés par une virgule.
+    # Exemple : OSM_RESTRICT_COUNTRY_CODES = "fr,es,be,ch" (Restreint à France, Espagne, Belgique
+    # et Suisse)
+    # Laisser à null pour n'avoir aucune restriction
+    OSM_RESTRICT_COUNTRY_CODES = null
+
 # Liste des fonds de carte proposés sur les cartes de GeoNature
 # chaque section [[MAPCONFIG.BASEMAP]] définit un fond de carte
-# l'option service est obligatoire uniquement pour les wms 
+# l'option service est obligatoire uniquement pour les wms
 # l'ensemble des paramètre WMS peuvent être passé dans cette section
 [[MAPCONFIG.BASEMAP]]
-    name = "OpenstreetMap"
+    name = "OpenStreetMap"
     url = "//{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-    attributions = "OSM contributors"
+    attribution = "<a href='https://www.openstreetmap.org/copyright' target='_blank'>© OpenStreetMap contributors</a>"
+[[MAPCONFIG.BASEMAP]]
+    name = "IGN Plan v2"
+    url = "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png&STYLE=normal"
+    attribution = "&copy IGN"
+[[MAPCONFIG.BASEMAP]]
+    name = "IGN Ortho"
+    url = "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal"
+    attribution = "&copy IGN"
+[[MAPCONFIG.BASEMAP]]
+    name = "IGN Scan 25"
+    url = "https://data.geopf.fr/private/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&apikey=ign_scan_ws&LAYER=GEOGRAPHICALGRIDSYSTEMS.MAPS&EXCEPTIONS=text/xml&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal"
+    attribution = "&copy IGN"
+[[MAPCONFIG.BASEMAP]]
+    name = "IGN Cadastre"
+    url = "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=CADASTRALPARCELS.PARCELS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png&STYLE=normal"
+    attribution = "&copy IGN"
 [[MAPCONFIG.BASEMAP]]
     name = "WMS"
     url = "https://mon_flux_wms"
@@ -186,61 +231,79 @@ MAIL_ON_ERROR = false
     layers = 'ma_layer'
     attribution = 'lala'
 [[MAPCONFIG.BASEMAP]]
-    attributions = "GoogleSatellite"
+    attribution = "&copy Google Maps"
     name = "google"
     url = "//{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
     subdomains = ["mt0", "mt1", "mt2", "mt3"]
 
-
-
+# Add base layers on maps (from ref_geo, WMS, WFS, GeoJSON...)
+# Exemple les limites administratives
+[[MAPCONFIG.REF_LAYERS]]
+    activate = false
+    code = "limitesadministratives"
+    label = "Limites administratives (IGN)"
+    params = {service = "wms", version = "1.3.0", request = "GetMap", layers = "LIMITES_ADMINISTRATIVES_EXPRESS.LATEST", styles = "normal", format = "image/png", crs = "CRS:84", dpiMode = 7}
+    type = "wms"
+    url = "https://data.geopf.fr/wms-r"
+#[[MAPCONFIG.REF_LAYERS]]
+#    code = "COM"
+#    label = "Communes"
+#    type = "area"
+#    activate = false
+#    style = { color = "grey", fill = false, fillOpacity = "0.0", weight = 2 }
+#    params = {limit = 2000}
 
 # Configuration du module Synthese
 [SYNTHESE]
     # Liste des entités géographiques sur lesquelles les filtres
-    # géographiques de la synthese s'appuient 
+    # géographiques de la synthese s'appuient
     # (id_area = id de l'entité géo, table ref_geo.bib_areas_types).
     # ATTENTION : Si de nouveaux types d'entités géographiques sont intégrés
-    # dans la table ref_geo.l_areas, il faut bien recalculer les valeurs de 
-    # la table gn_synthese.cor_area_synthese en conséquence pour que 
-    # les données déjà présentes dans la synthèse soient associées à 
+    # dans la table ref_geo.l_areas, il faut bien recalculer les valeurs de
+    # la table gn_synthese.cor_area_synthese en conséquence pour que
+    # les données déjà présentes dans la synthèse soient associées à
     # ces nouvelles géométries.
     AREA_FILTERS = [
-        { label = "Communes", id_type = 25 }
+        { "label" = "Communes", "type_code" = "COM" }
     ]
 
     # Colonne à afficher par défaut sur la liste des résultats de la synthese
     # Choisir le champ 'prop' parmis les colonnes suivantes :
-    # id_synthese, date_min, cd_nom, lb_nom, nom_vern_or_lb_nom, st_asgeojson, 
-    # observers, dataset_name, url_source
+    # id_synthese, date_min, cd_nom, lb_nom, nom_vern_or_lb_nom,
+    # observers, dataset_name, url_source, count_min_max
+    # La liste des colonnes affichables est celle de la vue `gn_synthese.v_synthese_for_export`+ `nom_vern_or_lb_nom` et `count_min_max`
     LIST_COLUMNS_FRONTEND = [
         { prop = "nom_vern_or_lb_nom", name = "Taxon" },
         { prop = "date_min", name = "Date début" },
         { prop = "observers", name = "Observateurs" },
         { prop = "dataset_name", name = "Jeu de données" }
     ]
-    
+
+    # Colonnes affichables dans la liste des résulats, mais masquées par default
+    # Possibilité de les ajouter en cliquant sur la route crantée en haut de la liste
+    # La liste des colonnes affichables est celle de la vue `gn_synthese.v_synthese_for_export`
+    ADDITIONAL_COLUMNS_FRONTEND = [
+        { prop = "lb_nom", name = "Nom scientifique" },
+    ]
+
     # Nombre de résultats à afficher pour la recherche autocompletée de taxon
     TAXON_RESULT_NUMBER = 20
 
     # Liste de 'id_attribut' TaxHub à afficher dans :
-    # - la modale du détail d'une observation 
+    # - la modale du détail d'une observation
     # - les filtres taxonomique avancés
     ID_ATTRIBUT_TAXHUB = [102, 103]
 
     # Colonne de la table `gn_synthese.synthese` à masquer dans les filtres
-    # du formulaire 'occurrence avancé'. Par défaut, c'est un tableau vide. 
+    # du formulaire 'occurrence avancé'. Par défaut, c'est un tableau vide.
     # Exemple : pour enlever le filtre 'preuve non numérique'
     EXCLUDED_COLUMNS = ["non_digital_proof"]
 
-    # Affiche (=true) ou masque (=false) l'arbre de recherche taxonomique 
+    # Affiche (=true) ou masque (=false) l'arbre de recherche taxonomique
     # dans la recherche taxonomique avancée.
     # Cette fonctionnalité n'est pas actuallement stable sur un grand nombre de taxons.
     # Passer à 'false' si le temps de chargement est trop long.
     DISPLAY_TAXON_TREE = true
-
-    # Active (=true) ou pas (=false) le fait de rechercher sur le nom d'observateur 
-    # en 'ILIKE' sur les portées 1 et 2 du CRUVED
-    CRUVED_SEARCH_WITH_OBSERVER_AS_TXT = false
 
     # Switch the observer form input in free text input (false by default) or in select input (true)
     SEARCH_OBSERVER_WITH_LIST = false
@@ -248,7 +311,7 @@ MAIL_ON_ERROR = false
     ID_SEARCH_OBSERVER_LIST = 1
 
     # Activer (=true) ou pas (=false) la clusterisation des objets sur la carte
-    # Si 'false', passez le NB_MAX_OBS_MAP à 10000 pour éviter 
+    # Si 'false', passez le NB_MAX_OBS_MAP à 10000 pour éviter
     # de surcharger les navigateurs des clients (question de performances).
     ENABLE_LEAFLET_CLUSTER = true
 
@@ -256,25 +319,27 @@ MAIL_ON_ERROR = false
     NB_MAX_OBS_MAP = 50000
 
     # Nombre des dernières observations affichées par défaut
-    # sur la page d'accueil de la Synthèse 
+    # sur la page d'accueil de la Synthèse
     NB_LAST_OBS = 100
 
     # Nombre max d'observations dans les exports
     NB_MAX_OBS_EXPORT = 50000
 
-    # Noms des colonnes obligatoires de la vue ``gn_synthese.v_synthese_for_export``
-    EXPORT_ID_SYNTHESE_COL = "id_synthese"
-    EXPORT_ID_DATASET_COL = "jdd_id"
-    EXPORT_ID_DIGITISER_COL = "id_digitiser"
-    EXPORT_OBSERVERS_COL = "observateur"
-    EXPORT_GEOJSON_4326_COL = "geojson_4326"
-    EXPORT_GEOJSON_LOCAL_COL = "geojson_local"
+    # Formats d'export disponibles ["csv", "geojson", "shapefile", "gpkg"]
+    EXPORT_FORMAT = ["csv", "geojson", "shapefile"]
 
+    # Vues d'export personnalisées
+    EXPORT_OBSERVATIONS_CUSTOM_VIEWS = [
+        {
+            label = "format personnalisé", 
+            view_name = "schema_name.view_name"
+        }    
+    ]
     # Noms des colonnes obligatoires de la vue ``gn_synthese.v_metadata_for_export``
     EXPORT_METADATA_ID_DATASET_COL = "jdd_id"
     EXPORT_METADATA_ACTOR_COL = "acteurs"
 
-    # Champs à afficher dans l'export 
+    # Champs à afficher dans l'export
     # Voir les noms des champs de la ``vue gn_synthese.v_synthese_for_export``
     EXPORT_COLUMNS   = [
         "date_debut",
@@ -351,19 +416,65 @@ MAIL_ON_ERROR = false
         "uuid_perm_sinp",
         "uuid_perm_grp_sinp",
         "date_creation",
-        "date_modification"
+        "date_modification",
+        "champs_additionnels",
     ]
+    DISCUSSION_MODULES = ["SYNTHESE","VALIDATION"]
+    DISCUSSION_MAX_LENGTH = 1500
+    ALERT_MODULES = ["SYNTHESE","VALIDATION"]
+    PIN_MODULES = ["SYNTHESE","VALIDATION"]
+    # Configuration des filtres de listes rouges affichées dans la fenêtre avancée de la SYNTHESE
+    # Voir la documentation Manuel Administrateur > Module SYNTHESE > 5. Configurer les filtres des statuts de protection et des listes rouges
+    RED_LISTS_FILTERS = [
+        { "id" = "worldwide", "show" = true, "display_name" = "Liste rouge mondiale", "status_type" = "LRM" },
+        { "id" = "european", "show" = true, "display_name" = "Liste rouge européenne", "status_type" = "LRE" },
+        { "id" = "national", "show" = true, "display_name" = "Liste rouge nationale", "status_type" = "LRN" },
+        { "id" = "regional", "show" = true, "display_name" = "Liste rouge régionale", "status_type" = "LRR" },
+    ]
+    # Configuration des filtres de statuts de protection affichées dans la fenêtre avancée de la SYNTHESE
+    # Voir la documentation Manuel Administrateur > Module SYNTHESE > 5. Configurer les filtres des statuts de protection et des listes rouges
+    STATUS_FILTERS = [
+        { "id" = "protections", "show" = true, "display_name" = "Taxons protégés", "status_types" = ["PN", "PR", "PD"] },
+        { "id" = "regulations", "show" = true, "display_name" = "Taxons réglementés", "status_types" = ["REGLII", "REGL", "REGLSO"] },
+        { "id" = "invasive", "show" = true, "display_name" = "Espèces envahissantes", "status_types" = ["REGLLUTTE"] },
+        { "id" = "znief", "show" = true, "display_name" = "Espèces déterminantes ZNIEFF", "status_types" = ["ZDET"] },
+    ]
+
+    # Enable areas vizualisation with toggle slide
+    AREA_AGGREGATION_ENABLED = true
+    # Choose size of areas
+    AREA_AGGREGATION_TYPE = "M10"
+    # Activate areas mode by default
+    AREA_AGGREGATION_BY_DEFAULT = false
+    # Areas legend classes to use
+    AREA_AGGREGATION_LEGEND_CLASSES = [
+        { min = 100, color = "#800026" },
+        { min = 50, color = "#BD0026" },
+        { min = 20, color = "#E31A1C" },
+        { min = 10, color = "#FC4E2A" },
+        { min = 5, color = "#FD8D3C" },
+        { min = 2, color = "#FEB24C" },
+        { min = 1, color = "#FED976" },
+        { min = 0, color = "#FFEDA0" }
+    ]
+
+    [SYNTHESE.DEFAULT_FILTERS]
+        # Tous les statuts de validation sauf invalide '4'
+        # Il faut bien les renseigner en tant que chaîne de caractère (et non en tant que nombre)
+        cd_nomenclature_valid_status = ['0', '1', '2', '3', '5', '6']
+        # Seulement les données de présence
+        cd_nomenclature_observation_status = ['Pr']
 
 # Gestion des demandes d'inscription
 [ACCOUNT_MANAGEMENT]
     # Activer l'affichage du lien vers le formulaire d'inscription
     ENABLE_SIGN_UP = true
 
-    # Activer l'affichage de l'onglet de gestion des demandes de compte 
+    # Activer l'affichage de l'onglet de gestion des demandes de compte
     # utilisateur
     ENABLE_USER_MANAGEMENT = false
 
-    # Valider automatiquement la demande de création de compte (=true), 
+    # Valider automatiquement la demande de création de compte (=true),
     # sinon nécessite une validation (=false)
     AUTO_ACCOUNT_CREATION = false
 
@@ -371,8 +482,36 @@ MAIL_ON_ERROR = false
     # compte utilisateur
     AUTO_DATASET_CREATION = true
 
-    # Email du validateur si auto_account_creation = false
-    VALIDATOR_EMAIL = "theo.lechemia@ecrins-parcnational.fr"
+    # Ajouter des liens sur la page de connexion de GeoNature,
+    # peut être utile lors d'une externalisation des services de connexion
+    # Chaque [[ACCOUNT_MANAGEMENT.EXTERNAL_LINKS]] correspond à un lien
+    # supplémentaire ajouté sous le bouton "SE CONNECTER"
+
+    [[ACCOUNT_MANAGEMENT.EXTERNAL_LINKS]]
+    label = "Mot de passe oublié ?"
+    url = "https://mon.formulaire.de.motdepasse"
+
+    [[ACCOUNT_MANAGEMENT.EXTERNAL_LINKS]]
+    label = "Demande d'inscription"
+    url = "https://mon.formulaire.dinscription"
+
+    [[ACCOUNT_MANAGEMENT.EXTERNAL_LINKS]]
+    label = "Un autre lien"
+    url = "https://un.autre.lien"
+
+    # Email du validateur si auto_account_creation = false.
+    # Deux syntaxes alternatives sont autorisées pour ce paramètre :
+    # - une chaine contenant un ou plusieurs emails séparés par des
+    #   virgules (exemple ci-dessous).
+    # - une liste de chaine contenant un email.
+    # Un email encadré par des chevrons (<>) peut être précédé par un
+    # libellé qui sera utilisé lors de l'envoi.
+    # Les espaces présents en début et fin de chaine ainsi qu'avant et
+    # après les virgules sont ignorés.
+    VALIDATOR_EMAIL = """
+        Théo LECHEMIA <theo.lechemia@ecrins.fr>,
+        Carl von LINNÉ <c.linnaeus@linnaeus.se>
+        """
 
     # Texte complémentaire ajouté à la fin des emails envoyés à l'utilisateur.
     # Utiliser du HTML simple (compatible avec les email) ou du texte.
@@ -383,16 +522,16 @@ MAIL_ON_ERROR = false
         </p>"""
 
     # Configuration de la customisation du formulaire d'inscription
-    # Chaque section [[ACCOUNT_MANAGEMENT.ACCOUNT_FORM]] correspond à un 
+    # Chaque section [[ACCOUNT_MANAGEMENT.ACCOUNT_FORM]] correspond à un
     # champ (de type checkbox, select etc...)
     [[ACCOUNT_MANAGEMENT.ACCOUNT_FORM]]
         type_widget = "checkbox"
         attribut_label = """
-            <a target="_blank" href="http://docs.geonature.fr">
+            <a target="_blank" href="https://docs.geonature.fr">
                 J'ai lu et j'accepte la charte
             </a>"""
         attribut_name = "validate_charte"
-        values = [true] 
+        values = [true]
         required = true
     [[ACCOUNT_MANAGEMENT.ACCOUNT_FORM]]
         type_widget = "text"
@@ -431,10 +570,11 @@ MAIL_ON_ERROR = false
         class = "alert alert-primary"
         # Contenu HTML à insérer dans la balise DIV
         html = """
-            <p>Merci pour votre demande d’inscription. Après 
-            <strong>validation de l’administrateur</strong>, vous 
-            pourrez accéder aux observations publiques avec leur 
+            <p>Merci pour votre demande d’inscription. Après
+            <strong>validation de l’administrateur</strong>, vous
+            pourrez accéder aux observations publiques avec leur
             précision de géolocalisation maximale.</p>"""
+
 
 [SERVER]
     # Nivau de log du serveur.
@@ -448,6 +588,34 @@ MAIL_ON_ERROR = false
     MEDIAS_SIZE_MAX = 10000
 
 # Module métadonnées
-[METADATADA]
+[METADATA]
     # Nombre de cadre d'acquisition affiché sur la liste
     NB_AF_DISPLAYED = 100
+    # activer la fonctionalité de dépot/publication
+    ENABLE_CLOSE_AF = false
+
+    AF_PDF_TITLE = ""
+    DS_PDF_TITLE = ""
+    URL_FRAMEWORK_DOWNLOAD = ""
+    MAIL_SUBJECT_AF_CLOSED_BASE = ""
+    MAIL_CONTENT_AF_CLOSED_ADDITION = ""
+    MAIL_CONTENT_AF_CLOSED_PDF = ""
+    MAIL_CONTENT_AF_CLOSED_URL = ""
+    MAIL_CONTENT_AF_CLOSED_GREETINGS = ""
+    CLOSED_MODAL_LABEL = "Dépôt d'un cadre d'acquisition"
+    CLOSED_MODAL_CONTENT = "L'action de dépôt est une action irréversible. Il ne sera plus possible d'ajouter des jeux de données au cadre d'acquisition par la suite. Vous ne pourrez pas supprimer votre dépôt. "
+    # liste des types de role à afficher sur les formulaires JDD et CA
+    CD_NOMENCLATURE_ROLE_TYPE_DS = ["2"]
+    CD_NOMENCLATURE_ROLE_TYPE_AF = ["3"]
+    # Liste des types de zonage filtrables dans les métadonnées
+    METADATA_AREA_FILTERS = [
+        { "label" = "Communes", "type_code"= "COM" },
+        { "label" = "Départements", "type_code"= "DEP" },
+        { "label" = "Régions", "type_code"= "REG" }
+    ]
+
+# Page d’accueil
+[HOME]
+    TITLE = "Bienvenue dans GeoNature"
+    INTRODUCTION = "Texte d'introduction, configurable pour le modifier régulièrement ou le masquer"
+    FOOTER = ""

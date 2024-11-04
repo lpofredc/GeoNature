@@ -16,17 +16,19 @@
   </div>
   <div class="modal-body">
     <div class="form-inline">
-      <div class="form-group ">
+      <div class="form-group">
         <select
           [(ngModel)]="place"
           name="donnee"
           (ngModelChange)="onSelectPlace($event)"
-          style="min-width: 200px; margin-right: 50px;"
+          style="min-width: 200px; margin-right: 50px"
         >
           <option
             *ngFor="let place of places"
             [ngValue]="place"
-          >{{place.properties.place_name}}</option>
+          >
+            {{ place.properties.place_name }}
+          </option>
         </select>
         <button
           type="button"
@@ -45,6 +47,8 @@
       type="button"
       class="button-success"
       (click)="loadPlace()"
-    >Valider</button>
+    >
+      Valider
+    </button>
   </div>
 </ng-template>

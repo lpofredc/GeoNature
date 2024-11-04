@@ -7,7 +7,7 @@ import * as L from 'leaflet';
 import { Subscription } from 'rxjs/Subscription';
 import { GeoJSON } from 'leaflet';
 import { DataFormService } from '@geonature_common/form/data-form.service';
-import { timeStamp } from 'console';
+import { ConfigService } from '@geonature/services/config.service';
 
 /**
  * Affiche une modale permettant d'aficher la liste des lieux enregistrés pour l'utilisateur actif, puis affiche le lieux sélectionnés sur la carte.
@@ -16,11 +16,10 @@ import { timeStamp } from 'console';
  */
 @Component({
   selector: 'pnx-placesList',
-  templateUrl: 'placesList.component.html'
+  templateUrl: 'placesList.component.html',
 })
 export class PlacesListComponent extends MarkerComponent implements OnInit {
-  @ViewChild('modalContent') public modalContent: any;
-  private geojsonSubscription$: Subscription;
+  @ViewChild('modalContent', { static: false }) public modalContent: any;
   public geojson: any;
   public places: any[];
   public listPlacesSub: Subscription;
@@ -35,9 +34,10 @@ export class PlacesListComponent extends MarkerComponent implements OnInit {
     public mapService: MapService,
     public modalService: NgbModal,
     public commonService: CommonService,
-    private _dfs: DataFormService
+    private _dfs: DataFormService,
+    public config: ConfigService
   ) {
-    super(mapService, commonService);
+    super(mapService, commonService, config);
   }
 
   ngOnInit() {
@@ -75,7 +75,6 @@ export class PlacesListComponent extends MarkerComponent implements OnInit {
     this.mapservice.removeAllLayers(this.map, this.mapService.leafletDrawFeatureGroup);
     this.mapservice.removeAllLayers(this.map, this.mapService.fileLayerFeatureGroup);
 
-    this.mapservice.firstLayerFromMap = false;
     this.layerDrawed.emit(L.geoJSON(this.selectedPlace));
     this.mapService.loadGeometryReleve(this.selectedPlace, true);
     this.modalService.dismissAll();
@@ -92,29 +91,20 @@ export class PlacesListComponent extends MarkerComponent implements OnInit {
     }
     this.selectedPlace = this.place;
     if (confirm('Êtes-vous sûr de vouloir supprimer ce lieu?')) {
-      this._dfs.deletePlace(this.selectedPlace.id).subscribe(res => {
+      this._dfs.deletePlace(this.selectedPlace.id).subscribe((res) => {
         this.fetchPlaces();
       });
     }
   }
 
   fetchPlaces() {
-    this._dfs.getPlaces().subscribe(
-      res => {
-        if (Object.keys(res[0]).length > 0) {
-          this.places = res;
-          this.place = this.places[0];
-        } else {
-          this.places = null;
-          this.place = null;
-        }
-      },
-      err => {
-        if (err.status === 404) {
-          this.places = [];
-          this.place = null;
-        }
+    this._dfs.getPlaces().subscribe((res) => {
+      this.places = res;
+      if (this.places.length > 0) {
+        this.place = this.places[0];
+      } else {
+        this.place = null;
       }
-    );
+    });
   }
 }

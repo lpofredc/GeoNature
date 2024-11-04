@@ -1,7 +1,7 @@
 import { leafletDrawOption } from '@geonature_common/map/leaflet-draw.options';
 import { Page } from '../../map-list/map-list.service';
 import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
+import { UntypedFormControl, FormGroup } from '@angular/forms';
 
 import { leafletDrawOptions } from './leaflet-draw.options';
 
@@ -14,14 +14,14 @@ import { leafletDrawOptions } from './leaflet-draw.options';
   selector: 'pnx-geometry-form',
   templateUrl: './geometry-form.component.html',
   styleUrls: ['./geometry-form.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
 })
 export class GeometryFormComponent implements OnInit {
   public geojson;
   public leafletDrawOptions = leafletDrawOptions;
   // Disable the input: default to false
   @Input() disabled = false;
-  @Input() parentFormControl: FormControl;
+  @Input() parentFormControl: UntypedFormControl;
   /** Type de geomtrie parmi : 'Point', 'Polygon', 'LineString' */
   @Input() typeGeometry: string;
   @Input() label: string;
@@ -46,8 +46,8 @@ export class GeometryFormComponent implements OnInit {
           allowIntersection: false, // Restricts shapes to simple polygons
           drawError: {
             color: '#e1e100', // Color the shape will turn when intersects
-            message: 'Intersection forbidden !' // Message that will show when intersect
-          }
+            message: 'Intersection forbidden !', // Message that will show when intersect
+          },
         };
         break;
       }
@@ -67,7 +67,7 @@ export class GeometryFormComponent implements OnInit {
     }
 
     // suivi formControl => composant
-    this.parentFormControl.valueChanges.subscribe(geometry => {
+    this.parentFormControl.valueChanges.subscribe((geometry) => {
       this.setGeojson(geometry);
     });
   }

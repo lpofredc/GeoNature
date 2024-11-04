@@ -3,22 +3,21 @@ import { Map } from 'leaflet';
 import { MapService } from '../map.service';
 import * as L from 'leaflet';
 import { Observable } from 'rxjs';
-import { Subject } from 'rxjs/Subject';
-import { GeoJSON } from 'togeojson';
+import { Subject } from 'rxjs';
 
 /**
  *         Affiche sur la carte les geojson passé en *input*
  */
 @Component({
   selector: 'pnx-geojson',
-  templateUrl: 'geojson.component.html'
+  templateUrl: 'geojson.component.html',
 })
 export class GeojsonComponent implements OnInit, OnChanges {
   public map: Map;
   public currentGeojson: L.Layer;
   public layerGroup: any;
   /** Objet geojson à afficher sur la carte */
-  @Input() geojson: GeoJSON;
+  @Input() geojson: any;
   /**
    * Fonction permettant d'effectuer un traitement sur chaque layer du geojson (afficher une popup, définir un style etc...)
    * fonction définit par la librairie leaflet: ``onEachFeature(feature, layer)``. `Voir doc leaflet <http://leafletjs.com/examples/geojson/>`_
@@ -52,12 +51,11 @@ export class GeojsonComponent implements OnInit, OnChanges {
         return;
       }
 
-      let bounds = curLayerGroup.getBounds();
+      const bounds = curLayerGroup.getBounds();
       if (!Object.keys(bounds).length) {
         return;
       }
-
-      map.fitBounds(curLayerGroup.getBounds());
+      map.fitBounds(bounds);
     }, 200);
   }
 
@@ -72,6 +70,7 @@ export class GeojsonComponent implements OnInit, OnChanges {
     this.mapservice.layerGroup = new L.FeatureGroup();
     this.mapservice.map.addLayer(this.mapservice.layerGroup);
     this.mapservice.layerGroup.addLayer(this.currentGeojson);
+
     if (zoom) {
       this.zoom(this.mapservice.layerGroup);
     }

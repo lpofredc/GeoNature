@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { AppConfig } from '../../../conf/app.config';
 import { CommonService } from '@geonature_common/service/common.service';
 import * as L from 'leaflet';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { MapService } from '@geonature_common/map/map.service';
 import { Map } from 'leaflet';
+import { delay, finalize } from 'rxjs/operators';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Injectable()
 export class MapListService {
@@ -29,7 +30,7 @@ export class MapListService {
 
   public urlQuery: HttpParams = new HttpParams();
   public page = new Page();
-  public genericFilterInput = new FormControl();
+  public genericFilterInput = new UntypedFormControl();
   public isLoading = false;
   public zoomOnLayer = false;
   filterableColumns: Array<any>;
@@ -43,19 +44,19 @@ export class MapListService {
     color: '#3388ff',
     fill: false,
     fillOpacity: 0.2,
-    weight: 3
+    weight: 3,
   };
 
   selectedStyle = {
     color: '#ff0000',
     weight: 3,
-    fill: true
+    fill: true,
   };
 
   constructor(
     private _http: HttpClient,
-    private _commonService: CommonService,
-    private _ms: MapService
+    private _ms: MapService,
+    public config: ConfigService
   ) {
     this.columns = [];
     this.page.pageNumber = 0;
@@ -67,15 +68,16 @@ export class MapListService {
 
   onTableClick(map: Map): void {
     // On table click, change style layer and zoom
-    this.onTableClick$.subscribe(id => {
+    this.onTableClick$.subscribe((id) => {
       const selectedLayer = this.layerDict[id];
       this.toggleStyle(selectedLayer);
       this.zoomOnSelectedLayer(map, selectedLayer);
+      selectedLayer.bringToFront();
     });
   }
 
   onMapClick(): void {
-    this.onMapClik$.subscribe(id => {
+    this.onMapClik$.subscribe((id) => {
       this.selectedRow = []; // clear selected list
 
       const integerId = parseInt(id);
@@ -135,26 +137,21 @@ export class MapListService {
   dataService() {
     this.isLoading = true;
     return this._http
-      .get<any>(`${AppConfig.API_ENDPOINT}/${this.endPoint}`, { params: this.urlQuery })
-      .delay(200)
-      .finally(() => (this.isLoading = false));
+      .get<any>(`${this.config.API_ENDPOINT}/${this.endPoint}`, { params: this.urlQuery })
+      .pipe(
+        delay(200),
+        finalize(() => (this.isLoading = false))
+      );
   }
 
   loadData() {
-    this.dataService().subscribe(
-      data => {
-        this.page.totalElements = data.total;
-        this.page.itemPerPage = parseInt(this.urlQuery.get('limit'));
-        this.page.pageNumber = data.page;
-        this.geojsonData = data.items;
-        this.loadTableData(data.items, this.customCallBack);
-      },
-      err => {
-        if (err.status === 500) {
-          this._commonService.translateToaster('error', 'ErrorMessage');
-        }
-      }
-    );
+    this.dataService().subscribe((data) => {
+      this.page.totalElements = data.total;
+      this.page.itemPerPage = parseInt(this.urlQuery.get('limit'));
+      this.page.pageNumber = data.page;
+      this.geojsonData = data.items;
+      this.loadTableData(data.items, this.customCallBack);
+    });
   }
 
   getData(endPoint, param?: Array<any>, customCallBack?) {
@@ -178,11 +175,11 @@ export class MapListService {
     // set or append a param to urlQuery
     if (params) {
       if (method === 'set') {
-        params.forEach(param => {
+        params.forEach((param) => {
           this.setHttpParam(param.param, param.value);
         });
       } else {
-        params.forEach(param => {
+        params.forEach((param) => {
           this.appendHttpParam(param.param, param.value);
         });
       }
@@ -215,11 +212,11 @@ export class MapListService {
 
   deleteObsFront(idDelete: number) {
     // supprimer une observation sur la carte et la liste en front seulement
-    this.tableData = this.tableData.filter(row => {
+    this.tableData = this.tableData.filter((row) => {
       return row[this.idName] !== idDelete;
     });
 
-    this.geojsonData.features = this.geojsonData.features.filter(row => {
+    this.geojsonData.features = this.geojsonData.features.filter((row) => {
       return row['id'] !== idDelete.toString();
     });
     this.geojsonData = Object.assign({}, this.geojsonData);
@@ -243,28 +240,14 @@ export class MapListService {
   }
 
   zoomOnSelectedLayer(map, layer) {
-    if (layer instanceof L.Polygon || layer instanceof L.Polyline) {
-      map.fitBounds((layer as any)._bounds);
-    } else {
-      let latlng;
-      const zoom = map.getZoom();
-      // if its a multipoint
-      if (!layer._latlng) {
-        map.fitBounds(new L.GeoJSON(layer.feature).getBounds());
-      } else {
-        latlng = layer._latlng;
-        if (zoom >= 12) {
-          map.setView(latlng, zoom);
-        } else {
-          map.setView(latlng, 16);
-        }
-      }
-    }
+    const tempFeatureGroup = new L.FeatureGroup();
+    tempFeatureGroup.addLayer(layer);
+    map.fitBounds(tempFeatureGroup.getBounds(), { maxZoom: 15 });
   }
 
   zoomOnSeveralSelectedLayers(map, layers) {
     let group = new L.FeatureGroup();
-    layers.forEach(layer => {
+    layers.forEach((layer) => {
       this.layerDict[layer];
       group.addLayer(this.layerDict[layer]);
     });
@@ -289,7 +272,7 @@ export class MapListService {
   loadTableData(data, customCallBack?) {
     this.tableData = [];
     if (customCallBack) {
-      data.features.forEach(feature => {
+      data.features.forEach((feature) => {
         let newFeature = null;
         if (customCallBack) {
           newFeature = customCallBack(feature);
@@ -297,10 +280,11 @@ export class MapListService {
         this.tableData.push(newFeature.properties);
       });
     } else {
-      data.features.forEach(feature => {
+      data.features.forEach((feature) => {
         this.tableData.push(feature.properties);
       });
     }
+    this.tableData = [...this.tableData];
   }
 }
 

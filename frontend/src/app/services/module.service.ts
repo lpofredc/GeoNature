@@ -1,40 +1,58 @@
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { DataFormService } from '@geonature_common/form/data-form.service';
-import { BehaviorSubject } from 'rxjs';
+import { Observable, of, BehaviorSubject } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
 @Injectable()
 export class ModuleService {
-  // all active modules
-  // all modules exepted GEONATURE, for sidebar display
-  public displayedModules: Array<any>;
-  private $module: BehaviorSubject<Array<any>> = new BehaviorSubject(null);
-  constructor(private _api: DataFormService) {
-    this.fetchModules();
+  public shouldLoadModules = true;
+  public _modules: BehaviorSubject<any[]> = new BehaviorSubject([]);
+  get modules(): any[] {
+    return this._modules.getValue();
   }
-
-  get modules(): Array<any> {
-    return this.$module.getValue();
+  set modules(value: any[]) {
+    this._modules.next(value);
   }
-
-  fetchModules() {
-    this._api.getModulesList([]).subscribe(data => {
-      this.$module.next(data);
-      this.displayedModules = data.filter(mod => {
-        return (
-          mod.module_code.toLowerCase() !== 'geonature' &&
-          (mod.active_frontend || mod.module_external_url)
-        );
-      });
-      this.setModulesLocalStorage(data);
+  get $_modules(): Observable<any[]> {
+    return this._modules.asObservable();
+  }
+  public currentModule$ = new BehaviorSubject<any>(null);
+  get currentModule(): any {
+    return this.currentModule$.getValue();
+  }
+  get geoNatureModule(): any {
+    return this.modules.find((module) => {
+      return module.module_code.toLowerCase() == 'geonature';
     });
   }
 
-  setModulesLocalStorage(modules) {
-    localStorage.setItem('modules', JSON.stringify(modules));
+  constructor(
+    private _api: DataFormService,
+    private _router: Router
+  ) {}
+
+  loadModules(): Observable<any[]> {
+    return this._api.getModulesList([]).pipe(
+      catchError((err) => of([])), // TODO: error MUST be handled in case we are logged! (typically, api down)
+      tap((modules) => {
+        this.modules = modules;
+        this.shouldLoadModules = false;
+      })
+    );
   }
 
   getModules() {
-    return localStorage.getItem('modules');
+    return this.modules;
+  }
+
+  getDisplayedModules() {
+    return this.modules.filter((mod) => {
+      return (
+        mod.module_code.toLowerCase() !== 'geonature' &&
+        (mod.active_frontend || mod.module_external_url)
+      );
+    });
   }
 
   /**
@@ -42,15 +60,11 @@ export class ModuleService {
    * @param module_code: name of the module
    */
   getModule(module_code: string) {
-    const modules = localStorage.getItem('modules');
-    let searchModule = null;
-    if (modules) {
-      JSON.parse(modules).forEach(mod => {
-        if (mod.module_code.toLowerCase() === module_code.toLowerCase()) {
-          searchModule = mod;
-        }
-      });
+    for (let mod of this.modules) {
+      if (mod.module_code.toLowerCase() === module_code.toLowerCase()) {
+        return mod;
+      }
     }
-    return searchModule;
+    return null; // module with this code not found
   }
 }

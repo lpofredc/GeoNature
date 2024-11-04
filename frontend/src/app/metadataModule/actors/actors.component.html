@@ -1,43 +1,120 @@
-<h5> Acteur(s)</h5>
-<div *ngFor="let form of parentFormArray.controls; let i=index;">
-  <h5> </h5>
-  <!-- Organismes -->
-  <small> Organisme </small>
-  <div class="input-group">
-    <select class="form-control form-control-sm" [disableControl]="disabled" [formControl]="form.controls.id_organism">
-        <option [ngValue]="null"></option>
-      <option *ngFor="let org of organisms" [ngValue]="org.id_organisme" >
-        {{org.nom_organisme}} </option>
-    </select>
-    <button type="button" class="btn btn-outline-shadow btn-sm" data-toggle="collapse"
-    [attr.data-target]="'#collapse'+i">
-    <i class="fa fa-cog" aria-hidden="true"></i>
-    </button>
-  </div>
-
-  <div class="collapse" [attr.id]="'collapse'+i">
-    <small> Un jeu de données ou un cadre d'acquisition peut être rattaché à un organisme  <b> et/ou </b> à une personne </small>
-    <small> Personne </small>
-    <div class="input-group">
-      <select class="form-control form-control-sm" [disableControl]="disabled" [formControl]="form.controls.id_role">
-        <option [ngValue]="null"></option>
-        <option *ngFor="let role of roles" [ngValue]="role.id_role">
-          {{role.nom_complet}} </option>
-      </select>
-    </div>
-  </div>
-
-  <pnx-nomenclature label="Type de role" [parentFormControl]="form.controls.id_nomenclature_actor_role" codeNomenclatureType="ROLE_ACTEUR">
-  </pnx-nomenclature>
-
-  <button *ngIf="i != 0"
-    mat-mini-fab
+<div>
+  <mat-button-toggle-group
+    [value]="toggleButtonValue"
+    (change)="toggleActorOrganismChoiceChange($event)"
+    appearance="legacy"
+  >
+    <mat-button-toggle
+      value="organism"
+      matTooltip="Renseigner un organisme uniquement"
+    >
+      <mat-icon>domain</mat-icon>
+    </mat-button-toggle>
+    <mat-button-toggle
+      value="person"
+      matTooltip="Renseigner une personne uniquement"
+    >
+      <mat-icon>person</mat-icon>
+    </mat-button-toggle>
+    <mat-button-toggle
+      value="all"
+      matTooltip="Renseigner un organisme et un personne"
+    >
+      <mat-icon>domain</mat-icon>
+      <mat-icon>person</mat-icon>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
+  <button
+    *ngIf="isRemovable"
+    mat-icon-button
     color="warn"
-    class="mt-1"
-    (click)="deleteFormArray(i)">
-    <mat-icon>delete</mat-icon>
+    matTooltip="Supprimer cet acteur"
+    (click)="remove()"
+  >
+    <mat-icon>clear</mat-icon>
   </button>
-  <hr>
 
+  <form [formGroup]="actorForm">
+    <ng-container *ngIf="!isMainContact">
+      <small>Type de role</small>
+      <ng-select
+        class="auto"
+        [items]="role_types"
+        bindLabel="label_default"
+        bindValue="id_nomenclature"
+        placeholder="Type de role"
+        [multiple]="false"
+        [clearable]="false"
+        formControlName="id_nomenclature_actor_role"
+      >
+        <ng-template
+          ng-option-tmp
+          let-item="item"
+          let-index="index"
+          let-search="searchTerm"
+        >
+          <div [matTooltip]="item.label_default">
+            <span class="pre-wrap">{{ item.label_default }}</span>
+          </div>
+        </ng-template>
+      </ng-select>
+    </ng-container>
+
+    <!-- Organismes -->
+    <ng-container *ngIf="toggleButtonValue == 'organism' || toggleButtonValue == 'all'">
+      <small>Organisme</small>
+      <ng-select
+        class="auto"
+        [items]="organisms"
+        bindLabel="nom_organisme"
+        bindValue="id_organisme"
+        placeholder="Organisme"
+        [multiple]="false"
+        [clearable]="false"
+        [virtualScroll]="true"
+        formControlName="id_organism"
+      >
+        <ng-template
+          ng-option-tmp
+          let-item="item"
+          let-index="index"
+          let-search="searchTerm"
+        >
+          <div
+            [matTooltip]="item.nom_organisme"
+            [attr.data-qa]="'pnx-metadata-organism-' + item.nom_organisme"
+          >
+            <span class="pre-wrap">{{ item.nom_organisme }}</span>
+          </div>
+        </ng-template>
+      </ng-select>
+    </ng-container>
+
+    <!-- Personnes -->
+    <ng-container *ngIf="toggleButtonValue == 'person' || toggleButtonValue == 'all'">
+      <small>Personne</small>
+      <ng-select
+        class="auto"
+        [items]="roles"
+        bindLabel="nom_complet"
+        bindValue="id_role"
+        placeholder="Personne"
+        [multiple]="false"
+        [clearable]="false"
+        [virtualScroll]="true"
+        formControlName="id_role"
+      >
+        <ng-template
+          ng-option-tmp
+          let-item="item"
+          let-index="index"
+          let-search="searchTerm"
+        >
+          <div [matTooltip]="item.nom_complet">
+            <span class="pre-wrap">{{ item.nom_complet }}</span>
+          </div>
+        </ng-template>
+      </ng-select>
+    </ng-container>
+  </form>
 </div>
-

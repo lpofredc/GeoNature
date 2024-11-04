@@ -17,11 +17,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+import sys, os
 
 sys.path.insert(0, os.path.abspath("../backend"))
-
 
 # -- General configuration ------------------------------------------------
 
@@ -40,13 +38,15 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
-    "sphinxcontrib.httpdomain",
-    "sphinxcontrib.autohttp.flask",
-    "sphinxcontrib.autohttp.flaskqref",
+    "myst_parser",
 ]
 
-http_index_ignore_prefixes = ["/nomenclatures"]
-http_index_shortname = "api"
+## AUTOAPI
+extensions.append("autoapi.extension")
+autoapi_dirs = ["../backend/geonature", "../backend/dependencies"]
+autoapi_ignore = ["*migrations*", "*tests*"]
+autoapi_add_toctree_entry = False
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -54,15 +54,14 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = [".rst", ".md"]
 
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
 project = "GeoNature"
-copyright = "2018-2019, PnE, PnC"
+copyright = "2018-2023, PnE, PnC"
 author = "PnE, PnC"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -79,12 +78,12 @@ release = "2.0"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "fr"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = []
+exclude_patterns = ["venv*"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
@@ -129,15 +128,15 @@ html_static_path = ["_static"]
 #
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
-}
+html_sidebars = {"**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]}
 # html_sidebars = {
 #     '**': [
 #         'relations.html',  # needs 'show_related': True theme option to display
 #         'searchbox.html',
 #     ]
 # }
+
+html_extra_path = ["CNAME", "sources/"]
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -166,9 +165,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, "GeoNature.tex", "GeoNature Documentation", "PnE, pnC", "manual")
-]
+latex_documents = [(master_doc, "GeoNature.tex", "GeoNature Documentation", "PnE, pnC", "manual")]
 
 
 # -- Options for manual page output ---------------------------------------
@@ -197,5 +194,4 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
-
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}

@@ -1,19 +1,19 @@
 <div>
   <a
-    *ngIf="media.href()"
+    *ngIf="media.href(config.API_ENDPOINT, config.MEDIA_URL)"
     target="_blank"
     class="link-media float-right"
-    [href]="media.href()"
+    [href]="media.href(config.API_ENDPOINT, config.MEDIA_URL)"
   >
     <mat-icon matTooltip="{{ 'Media.link' | translate }}">link</mat-icon>
   </a>
   <div>
     <pnx-display-medias
-      *ngIf='media.sent'
+      *ngIf="media.sent"
       [medias]="[media]"
-      index=0
+      index="0"
       display="medium"
-      diaporama=true
+      diaporama="true"
     ></pnx-display-medias>
   </div>
 
@@ -21,16 +21,18 @@
     *ngIf="!bValidSizeMax"
     class="error"
   >
-    La taille du fichier ({{round(mediaForm.value.file.size / 1e6, 1)}} Mo)
-    est supérieure à la taille maximale autorisée ({{round(sizeMax / 1e3, 1)}} Mo)
+    La taille du fichier ({{ round(mediaForm.value.file.size / 1e6, 1) }} Mo) est supérieure à la
+    taille maximale autorisée ({{ round(sizeMax / 1e3, 1) }} Mo)
   </p>
 
   <p
-    *ngIf='errorMsg'
+    *ngIf="errorMsg"
     class="error"
-  >{{errorMsg}}</p>
+  >
+    {{ errorMsg }}
+  </p>
 
-  <p>{{message()}}</p>
+  <p>{{ message() }}</p>
 
   <pnx-dynamic-form-generator
     *ngIf="mediaFormDefinition"
@@ -41,7 +43,6 @@
     [formsDefinition]="mediaFormDefinition"
     (change)="onFormChange($event)"
   ></pnx-dynamic-form-generator>
-
 
   <button
     mat-mini-fab
@@ -58,5 +59,4 @@
     mode="determinate"
     [value]="media.uploadPercentDone"
   ></mat-progress-bar>
-
 </div>

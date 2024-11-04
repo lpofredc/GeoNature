@@ -3,41 +3,67 @@ import requests
 import json
 
 
-from flask import Blueprint, request, current_app, Response, redirect
+from flask import Blueprint, request, current_app, Response, redirect, g, render_template
 from sqlalchemy.sql import distinct, and_
+from sqlalchemy import distinct, and_, select, exists
+from werkzeug.exceptions import NotFound, BadRequest, Forbidden
 
 from geonature.utils.env import DB
 from geonature.core.gn_permissions import decorators as permissions
 from geonature.core.gn_meta.models import CorDatasetActor, TDatasets
-from geonature.core.gn_meta.repositories import get_datasets_cruved
 from geonature.core.users.models import (
     VUserslistForallMenu,
-    BibOrganismes,
     CorRole,
-    TListes,
 )
-from geonature.core.users.register_post_actions import function_dict
-from pypnusershub.db.models import User
+from geonature.utils.config import config
+from pypnusershub.db.models import Organisme, User, UserList
+from geonature.core.users.register_post_actions import (
+    validate_temp_user,
+    execute_actions_after_validation,
+    send_email_for_recovery,
+)
+
+from pypnusershub.env import REGISTER_POST_ACTION_FCT
+from pypnusershub.db.models import User, Application
 from pypnusershub.db.models_register import TempUser
 from pypnusershub.routes_register import bp as user_api
-from pypnusershub.routes import check_auth
 from utils_flask_sqla.response import json_resp
 
 
 routes = Blueprint("users", __name__, template_folder="templates")
 log = logging.getLogger()
 s = requests.Session()
-config = current_app.config
+
+
+user_fields = {
+    "id_role",
+    "identifiant",
+    "nom_role",
+    "prenom_role",
+    "nom_complet",
+    "id_organisme",
+    "groupe",
+    "active",
+}
+organism_fields = {
+    "id_organisme",
+    "uuid_organisme",
+    "nom_organisme",
+}
 
 # configuration of post_request actions for registrations
-
-
-current_app.config["after_USERSHUB_request"] = function_dict
+REGISTER_POST_ACTION_FCT.update(
+    {
+        "create_temp_user": validate_temp_user,
+        "valid_temp_user": execute_actions_after_validation,
+        "create_cor_role_token": send_email_for_recovery,
+    }
+)
 
 
 @routes.route("/menu/<int:id_menu>", methods=["GET"])
 @json_resp
-def getRolesByMenuId(id_menu):
+def get_roles_by_menu_id(id_menu):
     """
     Retourne la liste des roles associés à un menu
 
@@ -47,20 +73,20 @@ def getRolesByMenuId(id_menu):
     :type id_menu: int
     :query str nom_complet: begenning of complet name of the role
     """
-    q = DB.session.query(VUserslistForallMenu).filter_by(id_menu=id_menu)
+    query = select(VUserslistForallMenu).filter_by(id_menu=id_menu)
 
     parameters = request.args
-    if parameters.get("nom_complet"):
-        q = q.filter(
-            VUserslistForallMenu.nom_complet.ilike("{}%".format(parameters.get("nom_complet")))
-        )
-    data = q.order_by(VUserslistForallMenu.nom_complet.asc()).all()
+    nom_complet = parameters.get("nom_complet")
+    if nom_complet:
+        query = query.where(VUserslistForallMenu.nom_complet.ilike(f"{nom_complet}%"))
+
+    data = DB.session.scalars(query.order_by(VUserslistForallMenu.nom_complet.asc())).all()
     return [n.as_dict() for n in data]
 
 
 @routes.route("/menu_from_code/<string:code_liste>", methods=["GET"])
 @json_resp
-def getRolesByMenuCode(code_liste):
+def get_roles_by_menu_code(code_liste):
     """
     Retourne la liste des roles associés à une liste (identifiée par son code)
 
@@ -71,30 +97,33 @@ def getRolesByMenuCode(code_liste):
     :query str nom_complet: begenning of complet name of the role
     """
 
-    q = DB.session.query(VUserslistForallMenu).join(
-        TListes,
-        and_(TListes.id_liste == VUserslistForallMenu.id_menu, TListes.code_liste == code_liste,),
+    query = select(VUserslistForallMenu).join(
+        UserList,
+        and_(
+            UserList.id_liste == VUserslistForallMenu.id_menu,
+            UserList.code_liste == code_liste,
+        ),
     )
 
     parameters = request.args
     if parameters.get("nom_complet"):
-        q = q.filter(
+        query = query.where(
             VUserslistForallMenu.nom_complet.ilike("{}%".format(parameters.get("nom_complet")))
         )
-    data = q.order_by(VUserslistForallMenu.nom_complet.asc()).all()
+    data = DB.session.scalars(query.order_by(VUserslistForallMenu.nom_complet.asc())).all()
     return [n.as_dict() for n in data]
 
 
 @routes.route("/listes", methods=["GET"])
 @json_resp
-def getListes():
-
-    q = DB.session.query(TListes)
-    lists = q.all()
+def get_listes():
+    query = select(UserList)
+    lists = DB.session.scalars(query).all()
     return [l.as_dict() for l in lists]
 
 
 @routes.route("/role/<int:id_role>", methods=["GET"])
+@permissions.login_required
 @json_resp
 def get_role(id_role):
     """
@@ -105,95 +134,15 @@ def get_role(id_role):
     :param id_role: the id user
     :type id_role: int
     """
-    user = DB.session.query(User).filter_by(id_role=id_role).one()
-    return user.as_dict()
-
-
-@routes.route("/role", methods=["POST"])
-@json_resp
-def insert_role(user=None):
-    """
-        Insert un role
-
-        .. :quickref: User;
-
-        @TODO : Ne devrait pas être là mais dans UserHub
-        Utilisé dans l'authentification du CAS INPN
-    """
-    if user:
-        data = user
-    else:
-        data = dict(request.get_json())
-    user = User(**data)
-    if user.id_role is not None:
-        exist_user = DB.session.query(User).get(user.id_role)
-        if exist_user:
-            DB.session.merge(user)
-        else:
-            DB.session.add(user)
-    else:
-        DB.session.add(user)
-    DB.session.commit()
-    DB.session.flush()
-    return user.as_dict()
-
-
-@routes.route("/cor_role", methods=["POST"])
-@json_resp
-def insert_in_cor_role(id_group=None, id_user=None):
-    """
-    Insert a user in a group
-
-    .. :quickref: User;
-
-    :param id_role: the id user
-    :type id_role: int    
-    :param id_group: the id group
-    :type id_group: int
-        # TODO ajouter test sur les POST de données
-    """
-    exist_user = (
-        DB.session.query(CorRole)
-        .filter(CorRole.id_role_groupe == id_group)
-        .filter(CorRole.id_role_utilisateur == id_user)
-        .all()
-    )
-    if not exist_user:
-        cor_role = CorRole(id_group, id_user)
-        DB.session.add(cor_role)
-        DB.session.commit()
-        DB.session.flush()
-        return cor_role.as_dict()
-    return {"message": "cor already exists"}, 500
-
-
-@routes.route("/organism", methods=["POST"])
-@json_resp
-def insert_organism(organism):
-    """
-    Insert a organism
-
-    .. :quickref: User;
-    """
-    if organism is not None:
-        data = organism
-    else:
-        data = dict(request.get_json())
-    organism = BibOrganismes(**data)
-    if organism.id_organisme:
-        exist_org = DB.session.query(BibOrganismes).get(organism.id_organisme)
-        if exist_org:
-            DB.session.merge(organism)
-        else:
-            DB.session.add(organism)
-    else:
-        DB.session.add(organism)
-    DB.session.commit()
-    DB.session.flush()
-    return organism.as_dict()
+    user = DB.get_or_404(User, id_role)
+    fields = user_fields.copy()
+    if g.current_user == user:
+        fields.add("email")
+    return user.as_dict(fields=fields)
 
 
 @routes.route("/roles", methods=["GET"])
+@permissions.login_required
 @json_resp
 def get_roles():
     """
@@ -202,63 +151,67 @@ def get_roles():
     .. :quickref: User;
     """
     params = request.args.to_dict()
-    q = DB.session.query(User)
+    q = select(User)
     if "group" in params:
-        q = q.filter(User.groupe == params["group"])
+        q = q.where(User.groupe == params["group"])
     if "orderby" in params:
         try:
             order_col = getattr(User.__table__.columns, params.pop("orderby"))
             q = q.order_by(order_col)
         except AttributeError:
-            log.error("the attribute to order on does not exist")
-    return [user.as_dict() for user in q.all()]
+            raise BadRequest("the attribute to order on does not exist")
+    return [user.as_dict(fields=user_fields) for user in DB.session.scalars(q).all()]
 
 
 @routes.route("/organisms", methods=["GET"])
+@permissions.login_required
 @json_resp
 def get_organismes():
     """
-        Get all organisms
+    Get all organisms
 
-        .. :quickref: User;
+    .. :quickref: User;
     """
     params = request.args.to_dict()
-    q = DB.session.query(BibOrganismes)
+    q = select(Organisme)
     if "orderby" in params:
         try:
-            order_col = getattr(BibOrganismes.__table__.columns, params.pop("orderby"))
+            order_col = getattr(Organisme.__table__.columns, params.pop("orderby"))
             q = q.order_by(order_col)
         except AttributeError:
-            log.error("the attribute to order on does not exist")
-    return [organism.as_dict() for organism in q.all()]
+            raise BadRequest("the attribute to order on does not exist")
+    return [organism.as_dict(fields=organism_fields) for organism in DB.session.scalars(q).all()]
 
 
 @routes.route("/organisms_dataset_actor", methods=["GET"])
-@permissions.check_cruved_scope("R", True)
+@permissions.login_required
 @json_resp
-def get_organismes_jdd(info_role):
+def get_organismes_jdd():
     """
-    Get all organisms and the JDD where there are actor and where 
+    Get all organisms and the JDD where there are actor and where
     the current user hase autorization with its cruved
 
     .. :quickref: User;
     """
     params = request.args.to_dict()
-
-    datasets = [dataset["id_dataset"] for dataset in get_datasets_cruved(info_role)]
-    q = (
-        DB.session.query(BibOrganismes)
-        .join(CorDatasetActor, BibOrganismes.id_organisme == CorDatasetActor.id_organism)
-        .filter(CorDatasetActor.id_dataset.in_(datasets))
+    datasets = DB.session.scalars(TDatasets.filter_by_readable()).unique().all()
+    datasets = [d.id_dataset for d in datasets]
+    query = (
+        select(Organisme)
+        .join(CorDatasetActor, Organisme.id_organisme == CorDatasetActor.id_organism)
+        .where(CorDatasetActor.id_dataset.in_(datasets))
         .distinct()
     )
     if "orderby" in params:
         try:
-            order_col = getattr(BibOrganismes.__table__.columns, params.pop("orderby"))
-            q = q.order_by(order_col)
+            order_col = getattr(Organisme.__table__.columns, params.pop("orderby"))
+            query = query.order_by(order_col)
         except AttributeError:
-            log.error("the attribute to order on does not exist")
-    return [organism.as_dict() for organism in q.all()]
+            raise BadRequest("the attribute to order on does not exist")
+    return [
+        organism.as_dict(fields=organism_fields)
+        for organism in DB.session.scalars(query).unique().all()
+    ]
 
 
 #########################
@@ -266,12 +219,13 @@ def get_organismes_jdd(info_role):
 #########################
 
 
+# TODO: let frontend call UsersHub directly?
 @routes.route("/inscription", methods=["POST"])
 def inscription():
     """
-        Ajoute un utilisateur à utilisateurs.temp_user à partir de l'interface geonature
-        Fonctionne selon l'autorisation 'ENABLE_SIGN_UP' dans la config.
-        Fait appel à l'API UsersHub
+    Ajoute un utilisateur à utilisateurs.temp_user à partir de l'interface geonature
+    Fonctionne selon l'autorisation 'ENABLE_SIGN_UP' dans la config.
+    Fait appel à l'API UsersHub
     """
     # test des droits
     if not config["ACCOUNT_MANAGEMENT"].get("ENABLE_SIGN_UP", False):
@@ -279,12 +233,19 @@ def inscription():
 
     data = request.get_json()
     # ajout des valeurs non présentes dans le form
-    data["id_application"] = current_app.config["ID_APPLICATION_GEONATURE"]
+    data["id_application"] = (
+        DB.session.execute(
+            select(Application).filter_by(code_application=current_app.config["CODE_APPLICATION"])
+        )
+        .scalar_one()
+        .id_application
+    )
     data["groupe"] = False
     data["confirmation_url"] = config["API_ENDPOINT"] + "/users/after_confirmation"
 
     r = s.post(
-        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/create_temp_user", json=data,
+        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/create_temp_user",
+        json=data,
     )
 
     return Response(r), r.status_code
@@ -294,9 +255,9 @@ def inscription():
 @routes.route("/login/recovery", methods=["POST"])
 def login_recovery():
     """
-        Call UsersHub API to create a TOKEN for a user	
-        A post_action send an email with the user login and a link to reset its password	
-        Work only if 'ENABLE_SIGN_UP' is set to True	
+    Call UsersHub API to create a TOKEN for a user
+    A post_action send an email with the user login and a link to reset its password
+    Work only if 'ENABLE_SIGN_UP' is set to True
     """
     # test des droits
     if not current_app.config.get("ACCOUNT_MANAGEMENT").get("ENABLE_USER_MANAGEMENT", False):
@@ -315,9 +276,9 @@ def login_recovery():
 @routes.route("/confirmation", methods=["GET"])
 def confirmation():
     """
-        Validate a account after a demande (this action is triggered by the link in the email)
-        Create a personnal JDD as post_action if the parameter AUTO_DATASET_CREATION is set to True
-        Fait appel à l'API UsersHub
+    Validate a account after a demande (this action is triggered by the link in the email)
+    Create a personnal JDD as post_action if the parameter AUTO_DATASET_CREATION is set to True
+    Fait appel à l'API UsersHub
     """
     # test des droits
     if not config["ACCOUNT_MANAGEMENT"].get("ENABLE_SIGN_UP", False):
@@ -327,23 +288,36 @@ def confirmation():
     if token is None:
         return {"message": "Token introuvable"}, 404
 
-    data = {"token": token, "id_application": config["ID_APPLICATION_GEONATURE"]}
+    data = {
+        "token": token,
+        "id_application": DB.session.execute(
+            select(Application).filter_by(code_application=current_app.config["CODE_APPLICATION"])
+        )
+        .scalar_one()
+        .id_application,
+    }
 
     r = s.post(
-        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/valid_temp_user", json=data,
+        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/valid_temp_user",
+        json=data,
     )
 
     if r.status_code != 200:
+        if r.json() and r.json().get("msg"):
+            return r.json().get("msg"), r.status_code
         return Response(r), r.status_code
 
-    return redirect(config["URL_APPLICATION"], code=302)
+    new_user = r.json()
+    return render_template(
+        "account_created.html", user=new_user, redirect_url=config["URL_APPLICATION"]
+    )
 
 
 @routes.route("/after_confirmation", methods=["POST"])
 def after_confirmation():
     data = dict(request.get_json())
     type_action = "valid_temp_user"
-    after_confirmation_fn = function_dict.get(type_action, None)
+    after_confirmation_fn = REGISTER_POST_ACTION_FCT.get(type_action, None)
     result = after_confirmation_fn(data)
     if result != 0 and result["msg"] != "ok":
         msg = f"Problem in GeoNature API after confirmation {type_action} : {result['msg']}"
@@ -353,20 +327,22 @@ def after_confirmation():
 
 
 @routes.route("/role", methods=["PUT"])
-@permissions.check_cruved_scope("R", True)
+@permissions.login_required
 @json_resp
-def update_role(info_role):
+def update_role():
     """
-        Modifie le role de l'utilisateur du token en cours
+    Modifie le role de l'utilisateur du token en cours
     """
     if not current_app.config["ACCOUNT_MANAGEMENT"].get("ENABLE_USER_MANAGEMENT", False):
         return {"message": "Page introuvable"}, 404
+
     data = dict(request.get_json())
 
-    user = DB.session.query(User).get(info_role.id_role)
+    user = g.current_user
 
-    if user is None:
-        return {"message": "Droit insuffisant"}, 403
+    # Prevent public-access user from updating its own information
+    if user.is_public:
+        raise Forbidden
 
     attliste = [k for k in data]
     for att in attliste:
@@ -396,19 +372,17 @@ def update_role(info_role):
 
 
 @routes.route("/password/change", methods=["PUT"])
-@check_auth(1, True)
+@permissions.login_required
 @json_resp
-def change_password(id_role):
+def change_password():
     """
-        Modifie le mot de passe de l'utilisateur connecté et de son ancien mdp 
-        Fait appel à l'API UsersHub
+    Modifie le mot de passe de l'utilisateur connecté et de son ancien mdp
+    Fait appel à l'API UsersHub
     """
     if not current_app.config["ACCOUNT_MANAGEMENT"].get("ENABLE_USER_MANAGEMENT", False):
         return {"message": "Page introuvable"}, 404
 
-    user = DB.session.query(User).get(id_role)
-    if not user:
-        return {"msg": "Droit insuffisant"}, 403
+    user = g.current_user
     data = request.get_json()
 
     init_password = data.get("init_password", None)
@@ -439,7 +413,8 @@ def change_password(id_role):
     ):
         return {"msg": "Erreur serveur"}, 500
     r = s.post(
-        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/change_password", json=data,
+        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/change_password",
+        json=data,
     )
 
     if r.status_code != 200:
@@ -463,7 +438,8 @@ def new_password():
         return {"msg": "Erreur serveur"}, 500
 
     r = s.post(
-        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/change_password", json=data,
+        url=config["API_ENDPOINT"] + "/pypn/register/post_usershub/change_password",
+        json=data,
     )
 
     if r.status_code != 200:

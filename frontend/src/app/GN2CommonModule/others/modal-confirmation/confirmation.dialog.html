@@ -8,13 +8,17 @@
     mat-raised-button
     [color]="noColor"
     (click)="onNoClick()"
-  >{{ 'No' | translate }}
+    data-qa="confirmation-dialog-no"
+  >
+    {{ 'No' | translate }}
   </button>
   <button
     mat-raised-button
     [color]="yesColor"
     [mat-dialog-close]="true"
     cdkFocusInitial
-  >{{ 'Yes' | translate }}
+    data-qa="confirmation-dialog-yes"
+  >
+    {{ 'Yes' | translate }}
   </button>
 </div>

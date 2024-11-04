@@ -1,8 +1,7 @@
-import { Injectable } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
-import { isArray } from "util";
-import { AppConfig } from "@geonature_config/app.config";
-import { CommonService } from "@geonature_common/service/common.service";
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Nomenclature } from '@geonature_common/interfaces';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Injectable()
 export class ValidationDataService {
@@ -10,61 +9,41 @@ export class ValidationDataService {
 
   constructor(
     private _http: HttpClient,
-    private _commonService: CommonService
-  ) { }
-
-  buildQueryUrl(params): HttpParams {
-    let queryUrl = new HttpParams();
-    for (let key in params) {
-      if (isArray(params[key])) {
-        queryUrl = queryUrl.set(key, params[key]);
-      } else {
-        queryUrl = queryUrl.set(key, params[key]);
-      }
-    }
-    return queryUrl;
-  }
+    public config: ConfigService
+  ) {}
 
   getSyntheseData(params) {
-    return this._http.get<any>(`${AppConfig.API_ENDPOINT}/validation`, {
-      params: this.buildQueryUrl(params)
-    });
+    return this._http.post<any>(`${this.config.API_ENDPOINT}/validation`, params);
   }
-
-
 
   postStatus(data: any, endpoint: Array<number>) {
-    const urlStatus = `${AppConfig.API_ENDPOINT}/validation/${endpoint}`;
-    return this._http.post<any>(urlStatus, data);
-  }
-
-  getDefinitionData() {
-    return this._http.get<any>(
-      `${AppConfig.API_ENDPOINT}/validation/definitions`
-    );
+    const urlStatus = `${this.config.API_ENDPOINT}/validation/${endpoint}`;
+    return this._http.post<Nomenclature>(urlStatus, data);
   }
 
   getValidationDate(uuid) {
-    return this._http.get<any>(
-      `${AppConfig.API_ENDPOINT}/validation/date/${uuid}`
-    );
+    return this._http.get<any>(`${this.config.API_ENDPOINT}/validation/date/${uuid}`);
   }
 
   getStatusNames() {
-    return this._http.get<any>(
-      `${AppConfig.API_ENDPOINT}/validation/statusNames`
-    );
+    return this._http.get<any>(`${this.config.API_ENDPOINT}/validation/statusNames`);
   }
 
   getTaxonTree() {
-    return this._http.get<any>(
-      `${AppConfig.API_ENDPOINT}/synthese/taxons_tree`
-    );
+    return this._http.get<any>(`${this.config.API_ENDPOINT}/synthese/taxons_tree`);
   }
 
-  getOneSyntheseObservation(id_synthese) {
-    return this._http.get<any>(
-      `${AppConfig.API_ENDPOINT}/synthese/vsynthese/${id_synthese}`
-    );
+  getReports(params) {
+    return this._http.get(`${this.config.API_ENDPOINT}/synthese/reports?${params}`);
+  }
+
+  createReport(params) {
+    return this._http.put(`${this.config.API_ENDPOINT}/synthese/reports`, params, {
+      headers: new HttpHeaders().set('Content-Type', 'application/json'),
+    });
+  }
+
+  deleteReport(id) {
+    return this._http.delete(`${this.config.API_ENDPOINT}/synthese/reports/${id}`);
   }
 }

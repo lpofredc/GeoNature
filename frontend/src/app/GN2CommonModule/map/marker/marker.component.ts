@@ -1,12 +1,28 @@
 import { Component, OnInit, Input, Output, EventEmitter, OnChanges } from '@angular/core';
-import { Map, Marker } from 'leaflet';
+import { Map, Marker, Icon } from 'leaflet';
 import { BehaviorSubject } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { MapService } from '../map.service';
-import { AppConfig } from '@geonature_config/app.config';
 import * as L from 'leaflet';
 import { CommonService } from '../../service/common.service';
-import { GeoJson } from 'togeojson';
+import { ConfigService } from '@geonature/services/config.service';
+
+const iconRetinaUrl = './marker-icon-2x.png';
+const iconUrl = './marker-icon.png';
+const shadowUrl = './marker-shadow.png';
+
+export const CustomMarkerIcon = Icon.extend({
+  options: {
+    iconRetinaUrl: iconRetinaUrl,
+    iconUrl: iconUrl,
+    shadowUrl: shadowUrl,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41],
+  },
+});
 
 /**
  * Ce composant permet d'afficher un marker au clic sur la carte ainsi qu'un controleur permettant d'afficher/désafficher le marker.
@@ -15,7 +31,7 @@ import { GeoJson } from 'togeojson';
  */
 @Component({
   selector: 'pnx-marker',
-  templateUrl: 'marker.component.html'
+  templateUrl: 'marker.component.html',
 })
 export class MarkerComponent implements OnInit, OnChanges {
   public map: Map;
@@ -32,12 +48,17 @@ export class MarkerComponent implements OnInit, OnChanges {
   @Input() zoomLevel: number;
   /** Contrôle si le marker est activé par défaut au lancement du composant */
   @Input() defaultEnable = true;
-  @Output() markerChanged = new EventEmitter<GeoJson>();
-  constructor(public mapservice: MapService, private _commonService: CommonService) {}
+  @Output() markerChanged = new EventEmitter<any>();
+  constructor(
+    public mapservice: MapService,
+    private _commonService: CommonService,
+    public config: ConfigService
+  ) {}
 
   ngOnInit() {
     this.map = this.mapservice.map;
-    this.zoomLevel = this.zoomLevel || AppConfig.MAPCONFIG.ZOOM_LEVEL_RELEVE;
+    this.zoomLevel = this.zoomLevel || this.config.MAPCONFIG.ZOOM_LEVEL_RELEVE;
+
     this.setMarkerLegend();
     // activation or not of the marker
     if (this.defaultEnable) {
@@ -46,17 +67,16 @@ export class MarkerComponent implements OnInit, OnChanges {
       this.changeMarkerButtonColor(false);
     }
 
-    this.mapservice.isMarkerEditing$.subscribe(isEditing => {
+    this.mapservice.isMarkerEditing$.subscribe((isEditing) => {
       this.toggleEditing(isEditing);
     });
 
     //Observable pour gérer de l'affichage du marker
     this._coordinates
-      .pipe(filter(coords => this.map !== undefined && coords != null))
-      .subscribe(coords => {
-        this.mapservice.zoomOnMarker(coords, this.zoomToLocationLevel);
+      .pipe(filter((coords) => this.map !== undefined && coords != null))
+      .subscribe((coords) => {
         this.previousCoord = coords;
-        this.generateMarkerAndEvent(coords[0], coords[1]);
+        this.generateMarkerAndEvent(coords[0], coords[1], false, true);
       });
   }
 
@@ -78,17 +98,15 @@ export class MarkerComponent implements OnInit, OnChanges {
 
   enableMarkerOnClick() {
     this.map.on('click', (e: any) => {
-      // the boolean change MUST be before the output fire (emit)
-      this.mapservice.firstLayerFromMap = false;
       // check zoom level
       if (this.map.getZoom() < this.zoomLevel) {
         this._commonService.translateToaster('warning', 'Map.ZoomWarning');
       } else {
-        this.generateMarkerAndEvent(e.latlng.lng, e.latlng.lat);
+        this.generateMarkerAndEvent(e.latlng.lng, e.latlng.lat, true);
       }
     });
   }
-  generateMarkerAndEvent(x, y) {
+  generateMarkerAndEvent(x, y, withEvents = true, zoomOnLayer = false) {
     if (this.mapservice.marker !== undefined) {
       this.mapservice.marker.remove();
       this.mapservice.marker = this.mapservice.createMarker(x, y, true).addTo(this.map);
@@ -99,11 +117,17 @@ export class MarkerComponent implements OnInit, OnChanges {
       this.markerMoveEvent(this.mapservice.marker);
     }
     // observable to send geojson
-    this.mapservice.firstLayerFromMap = false;
+    // this.mapservice.firstLayerFromMap = false;
 
     const geojsonMarker = this.markerToGeojson(this.mapservice.marker.getLatLng());
-    this.mapservice.setGeojsonCoord(geojsonMarker);
-    this.markerChanged.emit(geojsonMarker);
+    if (withEvents) {
+      this.mapservice.setGeojsonCoord(geojsonMarker);
+      this.markerChanged.emit(geojsonMarker);
+    }
+
+    if (zoomOnLayer) {
+      this.mapservice.zoomOnMarker([x, y]);
+    }
   }
 
   markerMoveEvent(marker: Marker) {
@@ -119,7 +143,9 @@ export class MarkerComponent implements OnInit, OnChanges {
         this.map.addLayer(this.mapservice.marker);
         this.markerMoveEvent(this.mapservice.marker);
       } else {
-        this.markerChanged.emit(this.markerToGeojson(this.mapservice.marker.getLatLng()));
+        const geojsonCoord = this.markerToGeojson(this.mapservice.marker.getLatLng());
+        this.mapservice.setGeojsonCoord(geojsonCoord);
+        this.markerChanged.emit(geojsonCoord);
       }
     });
   }

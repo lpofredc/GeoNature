@@ -1,19 +1,19 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Map, GeoJSON, Layer, FeatureGroup, Marker, LatLng } from 'leaflet';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Map, GeoJSON, FeatureGroup, Marker } from 'leaflet';
 import { Subject, Observable } from 'rxjs';
+import { find } from 'lodash';
 
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
-import { AppConfig } from '@geonature_config/app.config';
 import { CommonService } from '../service/common.service';
-import { Feature } from 'geojson';
+import { CustomMarkerIcon } from '@geonature_common/map/marker/marker.component';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Injectable()
 export class MapService {
   public map: Map;
   public baseMaps: any;
-  private currentLayer: GeoJSON;
   public marker: Marker;
   public editingMarker = true;
   public leafletDrawFeatureGroup: FeatureGroup;
@@ -28,33 +28,44 @@ export class MapService {
   private _isEditingMarker = new Subject<boolean>();
   public isMarkerEditing$: Observable<any> = this._isEditingMarker.asObservable();
   public layerGroup: any;
-  // boolean to control if gettingGeojsonCoord$ observable is fire
-  // this observable must be fired only after a map event
-  // not from data sended by API (to avoid recalculate altitude for exemple)
-  public firstLayerFromMap = true;
   public layerControl: L.Control.Layers;
   // Leaflet reference for external module
   public L = L;
 
   selectedStyle = {
     color: '#ff0000',
-    weight: 3
+    weight: 3,
   };
 
   originStyle = {
     color: '#3388ff',
     fill: false,
     fillOpacity: 0.2,
-    weight: 3
+    weight: 3,
   };
 
   searchStyle = {
-    color: 'green'
+    color: 'green',
   };
 
-  constructor(private http: HttpClient, private _commonService: CommonService) {
+  constructor(
+    private _httpClient: HttpClient,
+    private _commonService: CommonService,
+    public config: ConfigService
+  ) {
     this.fileLayerFeatureGroup = new L.FeatureGroup();
   }
+
+  getAreas = (params) => {
+    let queryString: HttpParams = new HttpParams();
+    for (let key in params) {
+      queryString = queryString.set(key, params[key]);
+    }
+
+    return this._httpClient.get<any>(`${this.config.API_ENDPOINT}/geo/areas`, {
+      params: queryString,
+    });
+  };
 
   setMap(map) {
     this.map = map;
@@ -74,9 +85,7 @@ export class MapService {
   }
 
   setGeojsonCoord(geojsonCoord) {
-    if (!this.firstLayerFromMap) {
-      this._geojsonCoord.next(geojsonCoord);
-    }
+    this._geojsonCoord.next(geojsonCoord);
   }
 
   zoomOnMarker(coordinates, zoomLevel = 15) {
@@ -95,9 +104,9 @@ export class MapService {
   addCustomLegend(position, id, logoUrl?, func?) {
     const LayerControl = L.Control.extend({
       options: {
-        position: position
+        position: position,
       },
-      onAdd: map => {
+      onAdd: (map) => {
         const customLegend = L.DomUtil.create(
           'div',
           'leaflet-bar leaflet-control leaflet-control-custom'
@@ -118,7 +127,7 @@ export class MapService {
           }
         };
         return customLegend;
-      }
+      },
     });
     return LayerControl;
   }
@@ -126,62 +135,57 @@ export class MapService {
   addSearchBar() {
     const control = L.Control.extend({
       options: {
-        position: 'topright'
+        position: 'topright',
       },
-      onAdd: map => {
+      onAdd: (map) => {
         const customLegend = L.DomUtil.create(
           'input',
           'leaflet-bar leaflet-control leaflet-control-custom'
         );
-        // customLegend.onclick = () => {
-        //   if (func) {
-        //     func();
-        //   }
-        // };
         return customLegend;
-      }
+      },
     });
     return control;
   }
 
   createMarker(x, y, isDraggable) {
     return L.marker([y, x], {
-      icon: L.icon({
-        iconUrl: require<any>('../../../../node_modules/leaflet/dist/images/marker-icon.png'),
-        iconSize: [24, 36],
-        iconAnchor: [12, 36]
-      }),
-      draggable: isDraggable
+      icon: new CustomMarkerIcon(),
+      draggable: isDraggable,
     });
   }
 
+  lineStyle(color = '#3388ff', weight = 3) {
+    return {
+      color: color || '#3388ff',
+      weight: weight || 3,
+    };
+  }
+
+  defaultStyle(color = '#3388ff', fill = true, fillOpacity = 0.2, weight = 3) {
+    return {
+      color: color,
+      fill: fill,
+      fillOpacity: fillOpacity,
+      weight: weight,
+    };
+  }
+
   createGeojson(geojson, asCluster: boolean, onEachFeature?, style?): GeoJSON {
-    const geojsonLayer = L.geoJSON(geojson, {
-      style: feature => {
+    const geojsonLayer = L.geoJSON(geojson?.features || geojson, {
+      style: (feature) => {
         switch (feature.geometry.type) {
           // No color nor opacity for linestrings
           case 'LineString':
-            return style
-              ? style
-              : {
-                  color: '#3388ff',
-                  weight: 3
-                };
+            return style || this.lineStyle();
           default:
-            return style
-              ? style
-              : {
-                  color: '#3388ff',
-                  fill: true,
-                  fillOpacity: 0.2,
-                  weight: 3
-                };
+            return style || this.defaultStyle();
         }
       },
       pointToLayer: (feature, latlng) => {
         return L.circleMarker(latlng);
       },
-      onEachFeature: onEachFeature
+      onEachFeature: onEachFeature,
     });
     if (asCluster) {
       return (L as any).markerClusterGroup().addLayer(geojsonLayer);
@@ -189,17 +193,24 @@ export class MapService {
     return geojsonLayer;
   }
 
+  createWMS(layerCfg) {
+    return L.tileLayer.wms(layerCfg.url, {
+      ...layerCfg.params,
+      crs: layerCfg.params?.crs ? L.CRS[layerCfg.params.crs.replace(':', '')] : null,
+    });
+  }
+
   removeAllLayers(map, featureGroup) {
     if (featureGroup) {
-      featureGroup.eachLayer(layer => {
+      featureGroup.eachLayer((layer) => {
         featureGroup.removeLayer(layer);
       });
     }
   }
   removeLayerFeatureGroups(featureGroups: Array<any>) {
-    featureGroups.forEach(featureGroup => {
+    featureGroups.forEach((featureGroup) => {
       if (featureGroup) {
-        featureGroup.eachLayer(layer => {
+        featureGroup.eachLayer((layer) => {
           featureGroup.removeLayer(layer);
         });
       }
@@ -213,16 +224,16 @@ export class MapService {
       // send observable
       let markerCoord = this.marker.getLatLng();
       let geojson = {
-        geometry: { type: 'Point', coordinates: [markerCoord.lng, markerCoord.lat] }
+        geometry: { type: 'Point', coordinates: [markerCoord.lng, markerCoord.lat] },
       };
       this.setGeojsonCoord(geojson);
-      this.marker.on('moveend', (event: L.LeafletMouseEvent) => {
-        if (this.map.getZoom() < AppConfig.MAPCONFIG.ZOOM_LEVEL_RELEVE) {
+      this.marker.on('moveend', () => {
+        if (this.map.getZoom() < this.config.MAPCONFIG.ZOOM_LEVEL_RELEVE) {
           this._commonService.translateToaster('warning', 'Map.ZoomWarning');
         } else {
           markerCoord = this.marker.getLatLng();
           geojson = {
-            geometry: { type: 'Point', coordinates: [markerCoord.lng, markerCoord.lat] }
+            geometry: { type: 'Point', coordinates: [markerCoord.lng, markerCoord.lat] },
           };
           // send observable
           this.setGeojsonCoord(geojson);
@@ -235,14 +246,14 @@ export class MapService {
     } else {
       let layer;
       if (data.geometry.type === 'LineString') {
-        const myLatLong = coordinates.map(point => {
+        const myLatLong = coordinates.map((point) => {
           return L.latLng(point[1], point[0]);
         });
         layer = L.polyline(myLatLong);
         this.leafletDrawFeatureGroup.addLayer(layer);
       }
       if (data.geometry.type === 'Polygon') {
-        const myLatLong = coordinates[0].map(point => {
+        const myLatLong = coordinates[0].map((point) => {
           return L.latLng(point[1], point[0]);
         });
         layer = L.polygon(myLatLong);
@@ -258,30 +269,123 @@ export class MapService {
     }
   }
 
-  //--------------------------------------------------------------------------------------
-  //----------------Geofit additional code map.service.ts
-  //liste des lieux
-  /*getPlaces(): Observable<any> {
-  return this.http.get<any>(`${AppConfig.API_ENDPOINT}/occtax/places`);
-}*/
-  /*
-//Afficher lieu
-drawPlace(place:GeoJSON.Feature){
- L.geoJSON(place).addTo(this.map);
- const geojson = L.geoJSON(place);
- this.map.fitBounds(geojson.getBounds());
-// this.map.setView(geojson.getBounds().getCenter(),12)
-}*/
-  /*
-// Supprimer lieu
-deletePlace(nom:String): Observable<{}> {
-const url=`${AppConfig.API_ENDPOINT}/occtax/delPlace/${nom}`;
-return this.http.delete(url);
-}
+  /**
+   * init layer by type and create empty layer for WFS and GeoJson
+   * @param type  string
+   * @returns
+   */
+  getLayerCreator = (type) =>
+    find(
+      [
+        {
+          geojson: (cfg) => this.createGeojson([], false, null, cfg?.style),
+        },
+        {
+          wfs: (cfg) => this.createGeojson([], false, null, cfg?.style),
+        },
+        {
+          wms: this.createWMS,
+        },
+        {
+          area: (cfg) => this.createGeojson([], false, null, cfg?.style),
+        },
+      ],
+      type
+    )[type];
 
-  //Ajouter lieu
-  addPlace(place:GeoJSON.Feature): Observable<any>{
-      
-    return this.http.post<GeoJSON.Feature>(`${AppConfig.API_ENDPOINT}/occtax/addPlace`,place);
-  } */
+  /**
+   * Method to custom controler.layers layers name with legend and name
+   * @param title string
+   * @param fill string
+   * @param stroke string
+   * @returns
+   */
+  getLegendBox({ title, fillColor, fillOpacity, color, weight, legendUrl }) {
+    let padding = 'padding-left:10px';
+    if (!fillColor && !color && !legendUrl) {
+      return title;
+    }
+    if (legendUrl) {
+      return `<span class="title-overlay" >${title}</span> </br> <img style="${padding}" src="${legendUrl}">`;
+    }
+    fillColor = fillColor || 'rgba(255,255,255)';
+    fillOpacity = fillOpacity || 1;
+    color = color || 'grey';
+    weight = weight + 2 || 3;
+
+    let svgSquare = `<svg width="16" height="16">
+      <rect width="300" height="100" style="fill:${fillColor};fill-opacity:${fillOpacity};stroke-width:${weight};stroke:${color}" />
+    </svg>`;
+    return `<span data-qa="title-overlay">${title}</span> <br/> <span style="${padding}">${svgSquare}</span>`;
+  }
+
+  /**
+   * will create overlays layers -> L.control.overlays
+   * @returns
+   */
+  createOverLayers(map) {
+    const OVERLAYERS = JSON.parse(JSON.stringify(this.config.MAPCONFIG.REF_LAYERS));
+    const overlaysLayers = {};
+    OVERLAYERS.map((lyr) => [lyr, this.getLayerCreator(lyr.type)(lyr)])
+      .filter((l) => l[1])
+      .forEach((lyr) => {
+        let title = lyr[0]?.label || '';
+        let style = lyr[0]?.style || {};
+
+        // this code create dict for L.controler.layers
+        // key is name display as checkbox label
+        // value is layer
+        let layerLeaf = lyr[1];
+        let legendUrl = '';
+        layerLeaf.configId = lyr[0].code;
+        if (layerLeaf?.options?.service === 'wms' && layerLeaf._url) {
+          legendUrl = `${layerLeaf._url}?TRANSPARENT=TRUE&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${layerLeaf.options.layers}&FORMAT=image%2Fpng&LEGEND_OPTIONS=forceLabels%3Aon%3BfontAntiAliasing%3Atrue`;
+        }
+        // leaflet layers controler required object
+        if (this.config.MAPCONFIG?.REF_LAYERS_LEGEND) {
+          overlaysLayers[this.getLegendBox({ title: title, ...style, legendUrl: legendUrl })] =
+            lyr[1];
+        } else {
+          overlaysLayers[`<span data-qa="title-overlay">${title}</span>`] = lyr[1];
+        }
+        if (lyr[0].activate) {
+          map.addLayer(layerLeaf);
+          this.loadOverlay(layerLeaf);
+        }
+      });
+    return overlaysLayers;
+  }
+
+  /**
+   * Will load WFS and GeoJson only if empty and only on added to map event
+   * @param overlay leaflet layer
+   * @returns
+   */
+  loadOverlay(overlay) {
+    let overlayer = overlay?.layer || overlay;
+    let cfgLayer = JSON.parse(JSON.stringify(this.config.MAPCONFIG.REF_LAYERS));
+    let layerAdded = cfgLayer.filter((o) => o.code === overlayer.configId)[0];
+
+    if (['wms'].includes(layerAdded.type) || overlayer.getLayers().length) return;
+
+    // Load geojson file or WFS - application/json only
+    if (['geojson', 'wfs'].includes(layerAdded.type)) {
+      this._httpClient.get<any>(layerAdded.url).subscribe((res = { features: [] }) => {
+        overlayer.addData(res);
+      });
+    }
+
+    // Load ref_geo data
+    if (['area'].includes(layerAdded.type)) {
+      let params = { type_code: layerAdded.code, format: 'geojson', ...layerAdded.params };
+      this.getAreas(params).subscribe((res) => {
+        let geojson = {
+          type: 'FeatureCollection',
+          name: layerAdded.label,
+          features: res.map((r) => ({ ...r, geometry: r.geometry })),
+        };
+        overlayer.addData(geojson);
+      });
+    }
+  }
 }

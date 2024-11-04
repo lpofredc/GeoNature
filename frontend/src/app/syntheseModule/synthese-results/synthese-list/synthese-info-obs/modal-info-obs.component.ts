@@ -1,14 +1,14 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { SyntheseDataService } from '@geonature_common/form/synthese-form/synthese-data.service';
 import { DataFormService } from '@geonature_common/form/data-form.service';
-import { AppConfig } from '@geonature_config/app.config';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { MediaService } from '@geonature_common/service/media.service';
 import { finalize } from 'rxjs/operators';
+import { ConfigService } from '@geonature/services/config.service';
 
 @Component({
   selector: 'pnx-synthese-modal-info-obs',
-  templateUrl: 'modal-info-obs.component.html'
+  templateUrl: 'modal-info-obs.component.html',
 })
 export class ModalInfoObsComponent implements OnInit {
   @Input() syntheseObs: any;
@@ -16,14 +16,17 @@ export class ModalInfoObsComponent implements OnInit {
   public selectedObs;
   public selectedObsTaxonDetail;
   public formatedAreas = [];
-  public SYNTHESE_CONFIG = AppConfig.SYNTHESE;
+  public SYNTHESE_CONFIG = null;
   public isLoading = false;
   constructor(
     private _gnDataService: DataFormService,
     private _dataService: SyntheseDataService,
     public activeModal: NgbActiveModal,
-    public mediaService: MediaService
-  ) {}
+    public mediaService: MediaService,
+    public config: ConfigService
+  ) {
+    this.SYNTHESE_CONFIG = this.config.SYNTHESE;
+  }
 
   ngOnInit() {
     this.loadOneSyntheseReleve(this.syntheseObs);
@@ -38,14 +41,14 @@ export class ModalInfoObsComponent implements OnInit {
           this.isLoading = false;
         })
       )
-      .subscribe(data => {
+      .subscribe((data) => {
         this.selectedObs = data;
         this.selectedObs['municipalities'] = [];
         this.selectedObs['other_areas'] = [];
         this.selectedObs['actors'] = this.selectedObs['actors'].split('|');
         const areaDict = {};
         // for each area type we want all the areas: we build an dict of array
-        this.selectedObs.areas.forEach(area => {
+        this.selectedObs.areas.forEach((area) => {
           if (!areaDict[area.area_type.type_name]) {
             areaDict[area.area_type.type_name] = [area];
           } else {
@@ -63,11 +66,11 @@ export class ModalInfoObsComponent implements OnInit {
       });
     this._gnDataService
       .getTaxonAttributsAndMedia(syntheseObs.cd_nom, this.SYNTHESE_CONFIG.ID_ATTRIBUT_TAXHUB)
-      .subscribe(data => {
+      .subscribe((data) => {
         this.selectObsTaxonInfo = data;
       });
 
-    this._gnDataService.getTaxonInfo(syntheseObs.cd_nom).subscribe(data => {
+    this._gnDataService.getTaxonInfo(syntheseObs.cd_nom).subscribe((data) => {
       this.selectedObsTaxonDetail = data;
     });
   }

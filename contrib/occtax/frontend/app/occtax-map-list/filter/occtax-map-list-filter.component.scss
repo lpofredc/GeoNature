@@ -21,14 +21,14 @@
 #refresh-filter {
   color: red;
 }
-#collapse-settings{
+#collapse-settings {
   padding: 5px 15px;
 }
 
-:host /deep/ #button-input {
+:host ::ng-deep #button-input {
   height: 2rem;
 }
 
 ::ng-deep .dynamic-form {
-  display: block!important;
+  display: block !important;
 }

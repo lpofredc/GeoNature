@@ -1,5 +1,5 @@
 IMPORT NIVEAU 1
-===============
+"""""""""""""""
 
 Dans cet exemple, nous allons importer un fichier CSV (ou SHP) d'observations dans la base de données de GeoNature, 
 pour ensuite intégrer ces données dans la synthèse de GeoNature.
@@ -8,7 +8,7 @@ On utilisera le fichier d'exemple
 https://github.com/PnX-SI/Ressources-techniques/blob/master/GeoNature/V2/import-basique/01-observations-faune-2008-2010.csv.
 
 Importer la donnée source dans la BDD avec QGIS
------------------------------------------------
+```````````````````````````````````````````````
 
 PS : Si vous utilisez un CSV, vous pouvez aussi utiliser la fonction ``gn_imports.load_csv_file``.
 
@@ -31,7 +31,7 @@ voir la documentation https://github.com/PnEcrins/GeoNature-atlas/blob/master/do
 * Choisir la couche à importer et définir le nom de table de destination
 
 Créer les métadonnées
----------------------
+`````````````````````
 
 **1.** Ajouter une source (si elle n'existe pas déjà)
 
@@ -58,10 +58,10 @@ Par exemple ici ``ref_nomenclatures.v_data_typ``.
 Ou bien l'Admin des nomenclatures disponible dans GeoNature.
 
 Il est aussi possible d'utiliser les codes des nomenclatures pour retrouver leurs id (ceci étant variables d'une instance à l'autre), 
-en utilisant la fonction ``ref_nomencltaure.get_id_nomenclature``.
+en utilisant la fonction ``ref_nomenclatures.get_id_nomenclature``.
 
 Insertion des données dans la Synthèse
---------------------------------------
+``````````````````````````````````````
 
 .. code:: sql
 
@@ -69,7 +69,7 @@ Insertion des données dans la Synthèse
   unique_id_sinp,
   id_source,
   id_dataset,
-  id_nomenclature_obs_meth,
+  id_nomenclature_obs_technique,
   count_min,
   count_max,
   cd_nom,
@@ -90,8 +90,8 @@ Insertion des données dans la Synthèse
 	2 AS id_source,
 	3 AS id_dataset,
 	CASE
-	  WHEN critere = 'Vu' THEN (41) -- Ou bien ref_nomencltaure.get_id_nomenclature
-	  WHEN critere = 'Entendu' THEN (42)
+	  WHEN critere = 'Vu' THEN (select ref_nomenclatures.get_id_nomenclature('METH_OBS','0'))
+	  WHEN critere = 'Entendu' THEN (select ref_nomenclatures.get_id_nomenclature('METH_OBS','1'))
 	  ELSE (gn_synthese.get_default_nomenclature_value('METH_OBS'))
 	END AS id_nomenclature_obs_meth,
 	effectif::integer,
@@ -166,7 +166,7 @@ Pour retrouver le détail de toutes les communes du département Bouches-du-Rhô
 A utiliser dans une requête de suppression, en gérant les cascades entre les tables.
 
 Insertion depuis un shapefile
------------------------------
+`````````````````````````````
 
 L'exercice est similaire si on part depuis un fichier Shape 
 (https://github.com/PnX-SI/Ressources-techniques/blob/master/GeoNature/V2/import-basique/01-observations-faune-2008-2010-SHP.zip)

@@ -1,35 +1,32 @@
 import { Component, OnInit } from '@angular/core';
-import { AppConfig } from '@geonature_config/app.config';
-import { GlobalSubService } from '../../services/global-sub.service';
+import { ConfigService } from '@geonature/services/config.service';
 import { ModuleService } from '../../services/module.service';
 import { SideNavService } from './sidenav-service';
 
 @Component({
   selector: 'pnx-sidenav-items',
   templateUrl: './sidenav-items.component.html',
-  styleUrls: ['./sidenav-items.component.scss']
+  styleUrls: ['./sidenav-items.component.scss'],
 })
 export class SidenavItemsComponent implements OnInit {
   public nav = [{}];
-  public appConfig: any;
-  public version = AppConfig.GEONATURE_VERSION;
+  public version = null;
   public home_page: any;
   public exportModule: any;
 
   constructor(
-    public globalSub: GlobalSubService,
     public moduleService: ModuleService,
-    public _sidenavService: SideNavService
-  ) {}
+    public _sidenavService: SideNavService,
+    public config: ConfigService
+  ) {
+    this.version = this.config.GEONATURE_VERSION;
+  }
 
   ngOnInit() {
-    this.home_page = { module_url: '/', module_label: 'Accueil', module_picto: 'fa-home', id: '1' };
-    if (!this.moduleService.modules) {
-      this.moduleService.fetchModules();
-    }
+    this.home_page = this._sidenavService.getHomeItem();
   }
 
   setHome() {
-    this.globalSub.currentModuleSubject.next(null);
+    this.moduleService.currentModule$.next(null);
   }
 }

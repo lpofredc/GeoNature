@@ -1,20 +1,16 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
-import { Media } from './media';
-import { Router, ActivatedRoute, ParamMap } from '@angular/router';
-import { AppConfig } from '@geonature_config/app.config';
-import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { UntypedFormGroup, UntypedFormBuilder } from '@angular/forms';
 import { MediaService } from '@geonature_common/service/media.service';
 
 @Component({
   selector: 'pnx-medias-test',
   templateUrl: './medias-test.component.html',
-  styleUrls: ['./media.scss']
+  styleUrls: ['./media.scss'],
   // encapsulation: ViewEncapsulation.None
 })
 export class MediasTestComponent implements OnInit {
-  public mediaForm: FormGroup;
-
-  public appConfig = AppConfig;
+  public mediaForm: UntypedFormGroup;
 
   bInitialized = false;
 
@@ -29,17 +25,17 @@ export class MediasTestComponent implements OnInit {
         uuid_attached_row: null,
         title_fr: 'Media test',
         author: 'media testeur',
-        displayDetails: false
+        displayDetails: false,
       },
       details: ['title_fr', 'description_fr', 'id_nomenclature_media_type', 'author', 'bFile'],
-      switch_details: true
-    }
+      switch_details: true,
+    },
   ];
 
   constructor(
     private _route: ActivatedRoute,
     public ms: MediaService,
-    private _formBuilder: FormBuilder
+    private _formBuilder: UntypedFormBuilder
   ) {}
 
   ngOnInit() {
@@ -47,12 +43,11 @@ export class MediasTestComponent implements OnInit {
     const a = {};
     const s = 'a["f"] = a => !!a';
     eval(s);
-    console.log(a['f'](1));
     this.mediaForm = this._formBuilder.group({});
-    this._route.params.subscribe(params => {
+    this._route.params.subscribe((params) => {
       if (params['uuidAttachedRow']) {
         this.formDefinitions[0].default.uuid_attached_row = params['uuidAttachedRow'];
-        this.ms.getMedias(params['uuidAttachedRow']).subscribe(medias => {
+        this.ms.getMedias(params['uuidAttachedRow']).subscribe((medias) => {
           this.formDefinitions[0].value = medias;
           this.mediaForm.patchValue(medias || []);
           this.bInitialized = true;

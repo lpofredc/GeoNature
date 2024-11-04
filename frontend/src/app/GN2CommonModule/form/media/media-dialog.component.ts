@@ -1,16 +1,8 @@
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  SimpleChanges,
-  Inject
-} from '@angular/core';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
+import { Component, Inject } from '@angular/core';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Media } from './media';
 import { MediaService } from '@geonature_common/service/media.service';
+import { ConfigService } from '@geonature/services/config.service';
 
 export interface MediaDialogData {
   medias: Array<Media>;
@@ -20,13 +12,14 @@ export interface MediaDialogData {
 @Component({
   selector: 'pnx-media-dialog',
   templateUrl: './media-dialog.component.html',
-  styleUrls: ['./media.scss']
+  styleUrls: ['./media.scss'],
 })
 export class MediaDialog {
   constructor(
     public ms: MediaService,
     public dialogRef: MatDialogRef<MediaDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: MediaDialogData
+    @Inject(MAT_DIALOG_DATA) public data: MediaDialogData,
+    public config: ConfigService
   ) {}
 
   public media: Media;

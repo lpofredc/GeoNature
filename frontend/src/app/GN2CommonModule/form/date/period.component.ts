@@ -6,15 +6,18 @@ import { DateComponent } from './date.component';
 @Component({
   selector: 'pnx-period',
   host: {
-    '(document:click)': 'onClick($event)'
+    '(document:click)': 'onClick($event)',
   },
   templateUrl: 'date.component.html',
-  providers: [{ provide: NgbDateParserFormatter, useClass: NgbDatePeriodParserFormatter }]
+  providers: [{ provide: NgbDateParserFormatter, useClass: NgbDatePeriodParserFormatter }],
 })
 export class PeriodComponent extends DateComponent implements OnInit {
   public elementRef: ElementRef;
 
-  constructor(myElement: ElementRef, public dateParser: NgbDateParserFormatter) {
+  constructor(
+    myElement: ElementRef,
+    public dateParser: NgbDateParserFormatter
+  ) {
     super(myElement, dateParser);
   }
 

@@ -1,6 +1,6 @@
 *.*~
 settings.ini
-config/geonature_config.toml
+config/*_config.toml
 
 **/conf_gn_module.toml
 **/module.config.ts
@@ -8,8 +8,6 @@ config/geonature_config.toml
 log/*
 .vscode/
 geonature_config.toml
-external_assets/
-external_modules/*
 tmp/
 var/
 data/migrations/v1tov2/old/v1_compat.ini
@@ -17,12 +15,11 @@ data/migrations/v1tov2/old/v1_compat.log
 data/migrations/v1tov2/migratetoV2.ini
 
 config.py
-backend/static/medias/*
-backend/static/shapefiles/*
 backend/static/node_modules
-backend/static/configs/*
+backend/media
 
 backend/run.py
+cache/*
 
 .vscode
 
@@ -30,7 +27,6 @@ backend/run.py
 *.pem
 *.ipynb
 
-tsconfig.json
 .angulardoc.json
 Pipfile.lock
 
@@ -101,7 +97,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-#frontend doc
+docs/external_doc/documentation_js
 
 # PyBuilder
 target/
@@ -123,7 +119,7 @@ celerybeat-schedule
 
 # virtualenv
 .venv
-venv/
+venv*/
 ENV/
 
 # Spyder project settings
@@ -140,7 +136,6 @@ ENV/
 .mypy_cache/
 
 *.pid
-package-lock.json
 *.orig
 
 
@@ -149,4 +144,9 @@ install_all/install_all.log
 # Pycharm
 .idea/
 
-backend/static/images/taxa.png
+*.swp
+*.swo
+
+/docs/CHANGELOG.html
+
+/contrib/*/frontend/node_modules

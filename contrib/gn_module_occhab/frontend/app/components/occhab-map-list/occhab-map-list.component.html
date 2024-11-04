@@ -1,52 +1,53 @@
 <div
   id="cover-spin"
   *ngIf="dataLoading"
->
-</div>
+></div>
+
 <div class="float-btns">
   <button
     id="add-btn"
     mat-raised-button
     color="primary"
     class="button-success hard-shadow btn-action uppercase"
-    [routerLink]="['form']"
+    [routerLink]="['add']"
     matTooltip="Ajouter une nouvelle station d'habitat"
   >
     Ajouter
     <mat-icon>add_circle_outline</mat-icon>
   </button>
   <button
+    (click)="isCollapseFilter = !isCollapseFilter"
+    [attr.aria-expanded]="!isCollapseFilter"
     class="hard-shadow btn-action uppercase"
     mat-raised-button
     color="primary"
-    data-toggle="collapse"
-    data-target="#collapseFilter"
-    matTooltip="Rechercher des habitats "
+    matTooltip="Rechercher des habitats"
+    [matBadgeHidden]="mapListFormService.nbOfFilter() == 0"
+    [matBadge]="mapListFormService.nbOfFilter()"
+    matBadgeColor="warn"
   >
     Filter
     <i
       class="fa fa-sliders"
       aria-hidden="true"
     ></i>
-
   </button>
-
 </div>
 
-<div class="row row-sm map-list-container">
+<div
+  class="row row-sm map-list-container"
+  data-qa="pnx-occhab-map-list"
+>
   <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 padding-sm">
     <pnx-map-list
-      height='88vh'
+      height="88vh"
       idName="id_station"
     ></pnx-map-list>
   </div>
 
   <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 padding-sm">
-    <div
-      class="collapse"
-      id="collapseFilter"
-    >
-      <pnx-occhab-map-list-filter (onSearch)="searchData($event)"> </pnx-occhab-map-list-filter>
+    <div [(ngbCollapse)]="isCollapseFilter">
+      <pnx-occhab-map-list-filter (onSearch)="searchData($event)"></pnx-occhab-map-list-filter>
     </div>
     <button
       id="download-btn"
@@ -74,6 +75,7 @@
       [footerHeight]="50"
       [headerHeight]="50"
       (select)="mapListService.onRowSelect($event)"
+      data-qa="pnx-occhab-map-list-datatable"
     >
       <ngx-datatable-row-detail
         #myDetailRow
@@ -84,26 +86,36 @@
           let-row="row"
           let-expanded="expanded"
         >
-          <div><strong>ID station : </strong>{{ row.id_station }}</div>
-          <ng-container *ngIf="row.comment !== null && row?.comment.trim() !== ''">
-            <div><strong>Commentaire : </strong>{{ row.comment }}</div>
-          </ng-container>
-          <div><strong>Altitude :
-            </strong>{{ row.altitude_min == row.altitude_max ? row.altitude_min : row.altitude_min+' - '+row.altitude_max }}
+          <div>
+            <strong>ID station :</strong>
+            {{ row.id_station }}
           </div>
-          <div><strong>Observé par: </strong></div>
-          <div style="margin-left: 20px;">
+          <ng-container *ngIf="row.comment !== null && row?.comment.trim() !== ''">
+            <div>
+              <strong>Commentaire :</strong>
+              {{ row.comment }}
+            </div>
+          </ng-container>
+          <div>
+            <strong>Altitude :</strong>
+            {{
+              row.altitude_min == row.altitude_max
+                ? row.altitude_min
+                : row.altitude_min + ' - ' + row.altitude_max
+            }}
+          </div>
+          <div><strong>Observé par:</strong></div>
+          <div style="margin-left: 20px">
             <div *ngFor="let obs of displayObservateursTooltip(row)">
               {{ obs }}
             </div>
           </div>
-          <div><strong>Habitats(s): </strong></div>
-          <div style="margin-left: 20px;">
+          <div><strong>Habitats(s):</strong></div>
+          <div style="margin-left: 20px">
             <div *ngFor="let hab of displayHabTooltip(row)">
               {{ hab }}
             </div>
           </div>
-
         </ng-template>
       </ngx-datatable-row-detail>
       <ngx-datatable-column
@@ -113,7 +125,6 @@
         [draggable]="false"
         [canAutoResize]="false"
       >
-
         <ng-template
           ngx-datatable-cell-template
           let-row="row"
@@ -125,12 +136,13 @@
             [class.datatable-icon-right]="!expanded"
             [class.datatable-icon-down]="expanded"
             (click)="toggleExpandRow(row)"
-          >
-          </a>
+          ></a>
         </ng-template>
-
       </ngx-datatable-column>
-      <ngx-datatable-column maxWidth="10">
+      <ngx-datatable-column
+        maxWidth="10"
+        [sortable]="false"
+      >
         <ng-template
           let-row="row"
           ngx-datatable-cell-template
@@ -144,20 +156,23 @@
               class="fa fa-info-circle"
               aria-hidden="true"
             ></i>
-            {{row.id_station}}
+            {{ row.id_station }}
           </button>
         </ng-template>
       </ngx-datatable-column>
 
-      <ngx-datatable-column maxWidth="10">
-
+      <ngx-datatable-column
+        maxWidth="10"
+        [sortable]="false"
+      >
         <ng-template
           let-row="row"
           ngx-datatable-cell-template
         >
           <button
             class="btn btn-outline-shadow btn-no-padding btn-ghost"
-            [routerLink]="['form', row.id_station]"
+            [routerLink]="['edit', row.id_station]"
+            [disabled]="!row.cruved.U"
           >
             <i
               class="fa fa-pencil-square-o"
@@ -167,8 +182,10 @@
         </ng-template>
       </ngx-datatable-column>
 
-
-      <ngx-datatable-column maxWidth="10">
+      <ngx-datatable-column
+        maxWidth="10"
+        [sortable]="false"
+      >
         <ng-template
           let-row="row"
           ngx-datatable-cell-template
@@ -176,6 +193,7 @@
           <button
             class="btn btn-outline-shadow btn-no-padding btn-ghost"
             (click)="openDeleteModal(row, deleteModal)"
+            [disabled]="!row.cruved.D"
           >
             <i
               class="fa fa-trash-o"
@@ -185,70 +203,47 @@
         </ng-template>
       </ngx-datatable-column>
 
-
-
-      <ng-container *ngFor="let col of displayedColumns">
-        <ngx-datatable-column
-          [name]="col.name"
-          [prop]="col.prop"
-          [ngSwitch]="col.prop"
-          [width]="col.width"
+      <ngx-datatable-column name="Habitat">
+        <ng-template
+          ngx-datatable-cell-template
+          let-row="row"
         >
-          <!-- HABITAT -->
-          <ng-template
-            *ngSwitchCase="'habitats'"
-            ngx-datatable-cell-template
-            let-row="row"
+          <span
+            [matTooltip]="displayHabTooltip(row).join('\n')"
+            matTooltipPosition="left"
           >
-            <span
-              [matTooltip]="displayHabTooltip(row).join('\n')"
-              matTooltipPosition="left"
-            >
-              <span>
-                <span class='badge badge-dark'> {{row.t_habitats?.length}} </span>
-                {{displayHabTooltip(row)}}
-              </span>
+            <span>
+              <span class="badge badge-dark">{{ row.habitats?.length }}</span>
+              {{ displayHabTooltip(row) }}
             </span>
-          </ng-template>
-          <!-- DATE -->
-          <ng-template
-            *ngSwitchCase="'date_min'"
-            ngx-datatable-cell-template
-            let-row="row"
-            maxWidth="50"
-          >
-            <span matTooltip="{{ row.date_min|date:'dd-MM-yyyy' }}">
-              {{ row.date_min|date:'dd-MM-yyyy' }}
-            </span>
-          </ng-template>
-          <!-- JDD -->
-          <ng-template
-            *ngSwitchCase="'dataset_name'"
-            ngx-datatable-cell-template
-            let-row="row"
-          >
-            <span matTooltip="{{ row.dataset.dataset_name }}">
-              {{row.dataset.dataset_name}}
-            </span>
-          </ng-template>
-          <!-- OTHER COLS -->
-          <ng-template
-            *ngSwitchDefault
-            let-row="row"
-            ngx-datatable-cell-template
-          >
-            <span
-              [matTooltip]="row[col.prop]"
-              matTooltipPosition="left"
-            >
-              {{row[col.prop]}}
-            </span>
-          </ng-template>
-        </ngx-datatable-column>
-      </ng-container>
+          </span>
+        </ng-template>
+      </ngx-datatable-column>
+
+      <ngx-datatable-column name="Date min">
+        <ng-template
+          ngx-datatable-cell-template
+          let-row="row"
+          maxWidth="50"
+        >
+          <span matTooltip="{{ row.date_min | date: 'dd-MM-yyyy' }}">
+            {{ row.date_min | date: 'dd-MM-yyyy' }}
+          </span>
+        </ng-template>
+      </ngx-datatable-column>
+
+      <ngx-datatable-column name="Jeu de données">
+        <ng-template
+          ngx-datatable-cell-template
+          let-row="row"
+        >
+          <span matTooltip="{{ row.dataset.dataset_name }}">
+            {{ row.dataset.dataset_name }}
+          </span>
+        </ng-template>
+      </ngx-datatable-column>
     </ngx-datatable>
   </div>
-
 </div>
 
 <ng-template
@@ -256,13 +251,10 @@
   let-c="close "
   let-d="dismiss"
 >
-
   <pnx-occhab-delete
     [c]="c"
     [idStation]="deleteOne.id_station"
-    [nbHabitats]="deleteOne.t_habitats.length"
+    [nbHabitats]="deleteOne.habitats?.length"
     (onDelete)="mapListService.deleteObsFront(deleteOne.id_station)"
-  >
-  </pnx-occhab-delete>
-
+  ></pnx-occhab-delete>
 </ng-template>

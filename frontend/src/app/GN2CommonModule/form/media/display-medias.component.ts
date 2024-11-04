@@ -1,18 +1,10 @@
 import { DomSanitizer } from '@angular/platform-browser';
-import {
-  Component,
-  OnInit,
-  Input,
-  Output,
-  EventEmitter,
-  ViewEncapsulation,
-  SimpleChanges,
-  Inject
-} from '@angular/core';
+import { Component, Input, SimpleChanges } from '@angular/core';
 import { Media } from './media';
 import { MediaService } from '@geonature_common/service/media.service';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import { MediaDialog } from './media-dialog.component';
+import { ConfigService } from '@geonature/services/config.service';
 
 export interface MediaDialogData {
   medias: Array<Media>;
@@ -22,7 +14,7 @@ export interface MediaDialogData {
 @Component({
   selector: 'pnx-display-medias',
   templateUrl: './display-medias.component.html',
-  styleUrls: ['./media.scss']
+  styleUrls: ['./media.scss'],
 })
 export class DisplayMediasComponent {
   @Input() medias: Array<Media> = [];
@@ -35,7 +27,12 @@ export class DisplayMediasComponent {
   public bInitialized = false;
   public innerHTMLPDF = {};
 
-  constructor(public ms: MediaService, public dialog: MatDialog, public _sanitizer: DomSanitizer) {}
+  constructor(
+    public ms: MediaService,
+    public dialog: MatDialog,
+    public _sanitizer: DomSanitizer,
+    public config: ConfigService
+  ) {}
 
   ngOnInit() {
     this.initMedias();
@@ -58,7 +55,7 @@ export class DisplayMediasComponent {
     const heights = {
       mini: 50,
       small: 100,
-      medium: 200
+      medium: 200,
     };
 
     this.height = heights[this.display] ? `${heights[this.display]}px` : '100%';
@@ -68,7 +65,7 @@ export class DisplayMediasComponent {
   openDialog(index) {
     const dialogRef = this.dialog.open(MediaDialog, {
       width: '1000px',
-      data: { medias: this.medias, index }
+      data: { medias: this.medias, index },
     });
   }
 
@@ -81,7 +78,9 @@ export class DisplayMediasComponent {
   }
 
   getSafeUrl(index) {
-    return this._sanitizer.bypassSecurityTrustResourceUrl(this.medias[index].href());
+    return this._sanitizer.bypassSecurityTrustResourceUrl(
+      this.medias[index].href(this.config.API_ENDPOINT, this.config.MEDIA_FOLDER)
+    );
   }
 
   getSafeEmbedUrl(index) {

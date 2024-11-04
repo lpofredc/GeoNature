@@ -1,8 +1,8 @@
 <tree-root
   #tree
   (event)="catchEvent($event)"
-  [state]="storeService.taxonTreeState"
-  [nodes]="storeService.taxonTree"
+  [state]=""
+  [nodes]=""
   [options]="treeOptions"
 >
   <ng-template
@@ -10,7 +10,6 @@
     let-node
     let-index="index"
   >
-
     <i
       *ngIf="!node.data.leaf"
       class="fa fa-folder-o"

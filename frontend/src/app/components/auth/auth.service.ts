@@ -1,11 +1,17 @@
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AppConfig } from '../../../conf/app.config';
+
 import { CookieService } from 'ng2-cookies';
 import 'rxjs/add/operator/delay';
-import { exception } from 'console';
+import { forkJoin } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import * as moment from 'moment';
+import { CruvedStoreService } from '@geonature_common/service/cruved-store.service';
+import { ModuleService } from '../../services/module.service';
+import { RoutingService } from '@geonature/routing/routing.service';
+import { ConfigService } from '@geonature/services/config.service';
 
 export interface User {
   user_login: string;
@@ -23,90 +29,74 @@ export class AuthService {
   token: string;
   loginError: boolean;
   public isLoading = false;
-  constructor(private router: Router, private _http: HttpClient, private _cookie: CookieService) { }
+  private prefix: string = 'gn_';
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private _http: HttpClient,
+    private _cookie: CookieService,
+    private cruvedService: CruvedStoreService,
+    private _routingService: RoutingService,
+    private moduleService: ModuleService,
+    public config: ConfigService
+  ) {}
 
   setCurrentUser(user) {
-    localStorage.setItem('current_user', JSON.stringify(user));
+    localStorage.setItem(this.prefix + 'current_user', JSON.stringify(user));
   }
 
   getCurrentUser() {
-    let currentUser = localStorage.getItem('current_user');
-    if (!currentUser) {
-      const userCookie = this._cookie.get('current_user');
-      if (userCookie !== '') {
-        this.setCurrentUser(this.decodeObjectCookies(userCookie));
-        currentUser = localStorage.getItem('current_user');
-      }
-    }
+    let currentUser = localStorage.getItem(this.prefix + 'current_user');
     return JSON.parse(currentUser);
   }
 
-  setToken(token, expireDate) {
-    this._cookie.set('token', token, expireDate);
-  }
-
-  getToken() {
-    const token = this._cookie.get('token');
-    const response = token.length === 0 ? null : token;
-    return response;
-  }
-
-  checkUserExist(username: string): Observable<any> {
-    const options = {
-      identifiant: username,
-      id_application: AppConfig.ID_APPLICATION_GEONATURE
-    };
-    return this._http.post<any>(`${AppConfig.API_ENDPOINT}/auth/login/check`, options);
-  }
-
   loginOrPwdRecovery(data: any): Observable<any> {
-    return this._http.post<any>(`${AppConfig.API_ENDPOINT}/users/login/recovery`, data);
+    return this._http.post<any>(`${this.config.API_ENDPOINT}/users/login/recovery`, data);
   }
 
   passwordChange(data: any): Observable<any> {
-    return this._http.put<any>(`${AppConfig.API_ENDPOINT}/users/password/new`, data);
+    return this._http.put<any>(`${this.config.API_ENDPOINT}/users/password/new`, data);
+  }
+
+  manageUser(data): any {
+    this.setSession(data);
+    const userForFront = {
+      user_login: data.user.identifiant,
+      prenom_role: data.user.prenom_role,
+      id_role: data.user.id_role,
+      nom_role: data.user.nom_role,
+      nom_complet: data.user.nom_role + ' ' + data.user.prenom_role,
+      id_organisme: data.user.id_organisme,
+    };
+    this.setCurrentUser(userForFront);
+    this.loginError = false;
+  }
+
+  setSession(authResult) {
+    localStorage.setItem(this.prefix + 'id_token', authResult.token);
+    localStorage.setItem(this.prefix + 'expires_at', authResult.expires);
   }
 
   signinUser(user: any) {
-    this.isLoading = true;
-
     const options = {
       login: user.username,
       password: user.password,
-      id_application: AppConfig.ID_APPLICATION_GEONATURE
     };
-    this._http
-      .post<any>(`${AppConfig.API_ENDPOINT}/auth/login`, options)
-      .finally(() => (this.isLoading = false))
-      .subscribe(
-        data => {
-          const userForFront = {
-            user_login: data.user.identifiant,
-            prenom_role: data.user.prenom_role,
-            id_role: data.user.id_role,
-            nom_role: data.user.nom_role,
-            nom_complet: data.user.nom_role + ' ' + data.user.prenom_role,
-            id_organisme: data.user.id_organisme
-          };
-          this.setCurrentUser(userForFront);
-          this.loginError = false;
-          this.router.navigate(['']);
-        },
-        // error callback
-        () => {
-          this.loginError = true;
-        }
-      );
+
+    return this._http.post<any>(`${this.config.API_ENDPOINT}/auth/login`, options);
+  }
+
+  signinPublicUser(): Observable<any> {
+    return this._http.post<any>(`${this.config.API_ENDPOINT}/auth/public_login`, {});
   }
 
   signupUser(data: any): Observable<any> {
     const options = data;
-    return this._http.post<any>(`${AppConfig.API_ENDPOINT}/users/inscription`, options);
+    return this._http.post<any>(`${this.config.API_ENDPOINT}/users/inscription`, options);
   }
 
   decodeObjectCookies(val) {
     try {
-
       val = val.replace(/\\(\d{3})/g, function (match, octal) {
         return String.fromCharCode(parseInt(octal, 8));
       });
@@ -121,31 +111,63 @@ export class AuthService {
   }
 
   deleteAllCookies() {
-    document.cookie.split(';').forEach(c => {
+    document.cookie.split(';').forEach((c) => {
       document.cookie = c
         .replace(/^ +/, '')
         .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
     });
   }
 
+  isLoggedIn() {
+    return moment().utc().isBefore(this.getExpiration());
+  }
+
+  isLoggedOut() {
+    return !this.isLoggedIn();
+  }
+
+  getExpiration() {
+    const expiration = localStorage.getItem(this.prefix + 'expires_at');
+    return moment(expiration).utc();
+  }
+
   logout() {
-    this.deleteAllCookies();
-    if (AppConfig.CAS_PUBLIC.CAS_AUTHENTIFICATION) {
-      document.location.href = `${AppConfig.CAS_PUBLIC.CAS_URL_LOGOUT}?service=${
-        AppConfig.URL_APPLICATION
-        }`;
+    this.cleanLocalStorage();
+    this.cruvedService.clearCruved();
+    // call the logout route to delete the session
+    this._http.get<any>(`${this.config.API_ENDPOINT}/auth/logout`).subscribe(() => {
+      location.reload();
+    });
+
+    if (this.config.CAS_PUBLIC.CAS_AUTHENTIFICATION) {
+      document.location.href = `${this.config.CAS_PUBLIC.CAS_URL_LOGOUT}?service=${this.config.URL_APPLICATION}`;
     } else {
       this.router.navigate(['/login']);
-      // call the logout route to delete the session
-      // TODO: in case of different cruved user in DEPOBIO context must run this routes
-      // but actually make bug the INPN CAS deconnexion
-      this._http.get<any>(`${AppConfig.API_ENDPOINT}/gn_auth/logout_cruved`).subscribe(() => { });
-      // refresh the page to refresh all the shared service to avoid cruved conflict
-      location.reload();
     }
   }
 
+  private cleanLocalStorage() {
+    // Remove only local storage items need to clear when user logout
+    localStorage.removeItem(this.prefix + 'current_user');
+    localStorage.removeItem(this.prefix + 'id_token');
+    localStorage.removeItem(this.prefix + 'expires_at');
+    localStorage.removeItem('modules');
+  }
+
   isAuthenticated(): boolean {
-    return this._cookie.get('token') !== null;
+    return this._cookie.check('gn_id_token') && this._cookie.get('gn_id_token') !== null;
+  }
+
+  handleLoginError() {
+    this.isLoading = false;
+    this.loginError = true;
+  }
+
+  enableLoader() {
+    this.isLoading = true;
+  }
+
+  disableLoader() {
+    this.isLoading = false;
   }
 }

@@ -1,4 +1,5 @@
-import { MapListService } from "@geonature_common/map-list/map-list.service";
+import { MapListService } from '@geonature_common/map-list/map-list.service';
+import { TranslateService } from '@ngx-translate/core';
 import {
   Component,
   OnInit,
@@ -9,25 +10,24 @@ import {
   AfterContentChecked,
   OnChanges,
   ChangeDetectorRef,
-  EventEmitter
-} from "@angular/core";
-import { MapService } from "@geonature_common/map/map.service";
-import { NgbModal } from "@ng-bootstrap/ng-bootstrap";
-import { CommonService } from "@geonature_common/service/common.service";
-import { ModuleConfig } from "../../module.config";
-import { DomSanitizer } from "@angular/platform-browser";
-import { DatatableComponent } from "@swimlane/ngx-datatable";
-import { ValidationModalInfoObsComponent } from "../validation-modal-info-obs/validation-modal-info-obs.component";
-import { SyntheseFormService } from "@geonature_common/form/synthese-form/synthese-form.service";
-import { SyntheseDataService } from "@geonature_common/form/synthese-form/synthese-data.service";
+  EventEmitter,
+} from '@angular/core';
+import { MapService } from '@geonature_common/map/map.service';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { DomSanitizer } from '@angular/platform-browser';
+import { DatatableComponent } from '@swimlane/ngx-datatable';
+import { ValidationModalInfoObsComponent } from '../validation-modal-info-obs/validation-modal-info-obs.component';
+import { SyntheseFormService } from '@geonature_common/form/synthese-form/synthese-form.service';
+import { SyntheseDataService } from '@geonature_common/form/synthese-form/synthese-data.service';
+import { find, isEmpty, get, findIndex } from 'lodash';
+import { ConfigService } from '@geonature/services/config.service';
+
 @Component({
-  selector: "pnx-validation-synthese-list",
-  templateUrl: "validation-synthese-list.component.html",
-  styleUrls: ["validation-synthese-list.component.scss"]
+  selector: 'pnx-validation-synthese-list',
+  templateUrl: 'validation-synthese-list.component.html',
+  styleUrls: ['validation-synthese-list.component.scss'],
 })
-export class ValidationSyntheseListComponent
-  implements OnInit, OnChanges, AfterContentChecked {
-  public VALIDATION_CONFIG = ModuleConfig;
+export class ValidationSyntheseListComponent implements OnInit, OnChanges, AfterContentChecked {
   public oneSyntheseObs: any;
   selectedObs: Array<number> = []; // list of id_synthese values for selected rows
   selectedIndex: Array<number> = [];
@@ -37,84 +37,78 @@ export class ValidationSyntheseListComponent
   public rowNumber: number;
   private _latestWidth: number;
   public id_same_coordinates = []; // list of observation ids having same geographic coordinates
-  public modif_text =
-    "Attention données modifiées depuis la dernière validation";
+  public modif_text = 'Attention données modifiées depuis la dernière validation';
   public npage;
 
   @Input() inputSyntheseData: Array<any>;
   @Input() validationStatus: Array<any>;
-  @ViewChild("table") table: DatatableComponent;
+  @ViewChild('table') table: DatatableComponent;
   @Output() pageChange: EventEmitter<number>;
+  @Output() displayAll = new EventEmitter<any>();
+  @Input() idSynthese: any;
   public validationStatusAsDict: any;
+  public datatable_column_list: Array<any>;
+  public messages: any;
+  public alertActivate: boolean;
+  public pinActivate: boolean;
 
   constructor(
     public mapListService: MapListService,
+    private translate: TranslateService,
     private _ds: SyntheseDataService,
     public ngbModal: NgbModal,
-    private _commonService: CommonService,
     public sanitizer: DomSanitizer,
     public ref: ChangeDetectorRef,
     private _ms: MapService,
     public formService: SyntheseFormService,
-  ) {
-  }
+    public config: ConfigService
+  ) {}
 
   ngOnInit() {
+    this.alertActivate =
+      this.config.SYNTHESE.ALERT_MODULES &&
+      this.config.SYNTHESE.ALERT_MODULES.includes('VALIDATION');
+    this.pinActivate =
+      this.config.SYNTHESE.PIN_MODULES && this.config.SYNTHESE.PIN_MODULES.includes('VALIDATION');
+
     // get wiewport height to set the number of rows in the tabl
     const h = document.documentElement.clientHeight;
-    this.rowNumber = Math.trunc(h / 37);
+    this.rowNumber = Math.trunc(h / 50);
 
     // this.group = new FeatureGroup();
     this.onMapClick();
     this.onTableClick();
     this.npage = 1;
+    this.messages = {
+      emptyMessage: this.idSynthese
+        ? this.translate.instant('Validation.noIdFound')
+        : this.translate.instant('Validation.noData'),
+    };
   }
 
   onMapClick() {
-    this.mapListService.onMapClik$.subscribe(id => {
-      // create list of observation ids having coordinates = to id value
-
-
-      const selected_id_coordinates = this.mapListService.layerDict[id].feature
-        .geometry.coordinates;
-      this.id_same_coordinates = [];
-
-      // for (let obs in this.mapListService.geojsonData.features) {
-      //   console.log(obs);
-
-      //   if (
-      //     JSON.stringify(selected_id_coordinates) ==
-      //     JSON.stringify(
-      //       this.mapListService.geojsonData.features[obs].geometry.coordinates
-      //     )
-      //   ) {
-      //     this.id_same_coordinates.push(
-      //       parseInt(this.mapListService.geojsonData.features[obs].id)
-      //     );
-      //   }
-      // }
-
-      // select rows having id_synthese = to one of the id_same_coordinates values
+    this.mapListService.onMapClik$.subscribe((id) => {
       this.mapListService.selectedRow = [];
-      for (let i = 0; i < this.mapListService.tableData.length; i++) {
-        if (this.mapListService.tableData[i]["id_synthese"] === id) {
-          this.mapListService.selectedRow.push(
-            this.mapListService.tableData[i]
-          );
+      const integerId = parseInt(id);
+      let i;
+      for (i = 0; i < this.mapListService.tableData.length; i++) {
+        if (this.mapListService.tableData[i]['id_synthese'] === integerId) {
+          this.mapListService.selectedRow.push(this.mapListService.tableData[i]);
           break;
         }
-        const page = Math.trunc(i / this.rowNumber);
-
-        this.table.offset = page;
       }
-
-      //this.setSelectedObs();
+      const page = Math.trunc(i / this.rowNumber);
+      this.table.offset = page;
     });
   }
 
   onTableClick() {
     this.setSelectedObs();
-    this.mapListService.onTableClick$.subscribe(id => {
+    this.mapListService.onTableClick$.subscribe((id) => {
+      if (typeof id == 'number') {
+        const selectedLayer = this.mapListService.layerDict[id];
+        selectedLayer.bringToFront();
+      }
       this.setSelectedObs();
       this.setOriginStyleToAll();
       this.setSelectedSyleToSelectedRows();
@@ -135,7 +129,7 @@ export class ValidationSyntheseListComponent
   setOriginStyleToAll() {
     for (let obs in this.mapListService.layerDict) {
       this.mapListService.layerDict[obs].setStyle(
-        this.VALIDATION_CONFIG.MAP_POINT_STYLE.originStyle
+        this.config.VALIDATION.MAP_POINT_STYLE.originStyle
       );
     }
   }
@@ -143,7 +137,7 @@ export class ValidationSyntheseListComponent
   setSelectedSyleToSelectedRows() {
     for (let obs of this.selectedObs) {
       this.mapListService.layerDict[obs].setStyle(
-        this.VALIDATION_CONFIG.MAP_POINT_STYLE.selectedStyle
+        this.config.VALIDATION.MAP_POINT_STYLE.selectedStyle
       );
     }
   }
@@ -170,7 +164,7 @@ export class ValidationSyntheseListComponent
     }
   }
   onActivate(event) {
-    if (event.type == "checkbox" || event.type == "click") {
+    if (event.type == 'checkbox' || event.type == 'click') {
       this.setSelectedObs();
       this.viewFitList(this.selectedObs);
       if (this.mapListService.selectedRow.length === 0) {
@@ -194,16 +188,14 @@ export class ValidationSyntheseListComponent
       this.selectedObs = [];
     } else {
       for (let obs in this.mapListService.selectedRow) {
-        this.selectedObs.push(
-          this.mapListService.selectedRow[obs]["id_synthese"]
-        );
+        this.selectedObs.push(this.mapListService.selectedRow[obs]['id_synthese']);
       }
     }
 
     for (let obs of this.selectedObs) {
       // find position of selected observations in the ngxtable from id_synthese of selected observations
       this.selectedIndex.push(
-        this.mapListService.tableData.findIndex(i => i.id_synthese === obs)
+        this.mapListService.tableData.findIndex((i) => i.id_synthese === obs)
       );
     }
 
@@ -214,90 +206,106 @@ export class ValidationSyntheseListComponent
     }
   }
 
-  onStatusChange(cd_nomenclature) {
-    for (let obs in this.mapListService.selectedRow) {
-      this.mapListService.selectedRow[obs][
-        "cd_nomenclature_validation_status"
-      ] = cd_nomenclature;
-
-      this.mapListService.selectedRow[obs]["validation_auto"] = "";
-    }
-    this.mapListService.selectedRow = [...this.mapListService.selectedRow];
-  }
-
-  onValidationDateChange(date) {
-    for (let obs in this.mapListService.selectedRow) {
-      this.mapListService.selectedRow[obs]["validation_date"] = date;
-    }
-    this.mapListService.selectedRow = [...this.mapListService.selectedRow];
-  }
-
   // update the number of row per page when resize the window
-  @HostListener("window:resize", ["$event"])
+  @HostListener('window:resize', ['$event'])
   onResize(event) {
     this.rowNumber = Math.trunc(event.target.innerHeight / 37);
   }
 
   backToModule(url_source, id_pk_source) {
-    const link = document.createElement("a");
-    link.target = "_blank";
-    link.href = url_source + "/" + id_pk_source;
-    link.setAttribute("visibility", "hidden");
+    const link = document.createElement('a');
+    link.target = '_blank';
+    link.href = url_source + '/' + id_pk_source;
+    link.setAttribute('visibility', 'hidden');
     document.body.appendChild(link);
     link.click();
     link.remove();
   }
 
   getRowClass() {
-    return "row-sm clickable";
+    return 'row-sm clickable';
   }
 
   ngOnChanges(changes) {
     if (changes.inputSyntheseData && changes.inputSyntheseData.currentValue) {
       // reset page 0 when new data appear
-      this.table.offset = 0;
+      if (this.table) {
+        this.table.offset = 0;
+      }
+      this.openInfoModal(
+        this.inputSyntheseData.filter((i) => i.id_synthese == this?.idSynthese)[0]
+      );
     }
     this.deselectAll();
   }
 
   openInfoModal(row) {
+    if (!row) return;
     this.oneSyntheseObs = row;
     const modalRef = this.ngbModal.open(ValidationModalInfoObsComponent, {
-      size: "lg",
-      windowClass: "large-modal"
+      size: 'lg',
+      windowClass: 'large-modal',
     });
 
     modalRef.componentInstance.id_synthese = row.id_synthese;
     modalRef.componentInstance.uuidSynthese = row.unique_id_sinp;
     modalRef.componentInstance.validationStatus = this.validationStatus;
+    modalRef.componentInstance.currentValidationStatus = row.nomenclature_valid_status;
     modalRef.componentInstance.mapListService = this.mapListService;
-    modalRef.componentInstance.modifiedStatus.subscribe(modifiedStatus => {
+    modalRef.componentInstance.modifiedStatus.subscribe((modifiedStatus) => {
       for (let obs in this.mapListService.tableData) {
-        if (
-          this.mapListService.tableData[obs].id_synthese ==
-          modifiedStatus.id_synthese
-        ) {
+        if (this.mapListService.tableData[obs].id_synthese == modifiedStatus.id_synthese) {
           this.mapListService.tableData[obs].cd_nomenclature_validation_status =
             modifiedStatus.new_status;
-          this.mapListService.tableData[obs].validation_auto = "";
+          this.mapListService.tableData[obs].validation_auto = '';
         }
       }
     });
-    modalRef.componentInstance.valDate.subscribe(data => {
+    modalRef.componentInstance.onCloseModal.subscribe(() => {
+      // to refresh mapListService table UI
+      this.updateReports();
+    });
+    modalRef.componentInstance.valDate.subscribe((data) => {
       for (let obs in this.mapListService.selectedRow) {
-        this.mapListService.selectedRow[obs]["validation_date"] = data;
+        this.mapListService.selectedRow[obs]['validation_date'] = data;
       }
       this.mapListService.selectedRow = [...this.mapListService.selectedRow];
     });
   }
 
-  getValidationStatusMnemonique(code) {
-    var statusF = this.validationStatus.filter((st) => st.cd_nomenclature == code);
-    if (statusF.length > 0) {
-      return statusF[0].mnemonique;
+  /**
+   * Find selected obs row from table list by id synthese, and call reports to update.
+   * This call il required to get report_id value required to use DELETE route
+   */
+  updateReports() {
+    if (this.oneSyntheseObs) {
+      const rowIndex = findIndex(this.mapListService.tableData, [
+        'id_synthese',
+        this.oneSyntheseObs.id_synthese,
+      ]);
+      // get all reports
+      const params = `idSynthese=${this.oneSyntheseObs.id_synthese}`;
+      this._ds.getReports(params).subscribe((response) => {
+        // search alert in table to update and refresh UI
+        this.mapListService.tableData[rowIndex].reports = response;
+      });
     }
-    else {
-      return null;
+  }
+
+  /**
+   * Catch report by type from selected obs reports list
+   * @param row from selected table line
+   * @param type from report type
+   * @param attribute attribute to match
+   * @returns object from TReport model
+   */
+  findReportInfo(row, type, attribute) {
+    const reportItem = find(row.reports, ['report_type.type', type]);
+    if (attribute && !isEmpty(reportItem)) {
+      // search a value if we search a value and not complet report
+      return get(reportItem, `${attribute}`);
     }
+    // search if exists
+    return reportItem;
   }
 }

@@ -1,6 +1,8 @@
 from sqlalchemy import ForeignKey
 from pypnusershub.db.models import User
 from utils_flask_sqla.serializers import serializable
+from sqlalchemy.sql import select, func
+from sqlalchemy.dialects.postgresql import UUID
 
 from geonature.utils.env import DB
 
@@ -17,28 +19,17 @@ class VUserslistForallMenu(DB.Model):
 
 
 @serializable
-class BibOrganismes(DB.Model):
-    __tablename__ = "bib_organismes"
-    __table_args__ = {"schema": "utilisateurs"}
-    id_organisme = DB.Column(DB.Integer, primary_key=True)
-    nom_organisme = DB.Column(DB.Unicode)
-    cp_organisme = DB.Column(DB.Unicode)
-    ville_organisme = DB.Column(DB.Unicode)
-    tel_organisme = DB.Column(DB.Unicode)
-    fax_organisme = DB.Column(DB.Unicode)
-    email_organisme = DB.Column(DB.Unicode)
-
-
-@serializable
 class CorRole(DB.Model):
     __tablename__ = "cor_roles"
-    __table_args__ = {"schema": "utilisateurs"}
+    __table_args__ = {"schema": "utilisateurs", "extend_existing": True}
     id_role_groupe = DB.Column(
         DB.Integer, ForeignKey("utilisateurs.t_roles.id_role"), primary_key=True
     )
     id_role_utilisateur = DB.Column(DB.Integer, primary_key=True)
     role = DB.relationship(
-        User, primaryjoin=(User.id_role == id_role_groupe), foreign_keys=[id_role_groupe],
+        User,
+        primaryjoin=(User.id_role == id_role_groupe),
+        foreign_keys=[id_role_groupe],
     )
 
     def __init__(self, id_group, id_role):
@@ -74,13 +65,3 @@ class UserRigth:
         self.module_code = module_code
         self.nom_role = nom_role
         self.prenom_role = prenom_role
-
-
-@serializable
-class TListes(DB.Model):
-    __tablename__ = "t_listes"
-    __table_args__ = {"schema": "utilisateurs", "extend_existing": True}
-    id_liste = DB.Column(DB.Integer, primary_key=True)
-    code_liste = DB.Column(DB.Unicode)
-    nom_liste = DB.Column(DB.Unicode)
-    desc_liste = DB.Column(DB.Integer)

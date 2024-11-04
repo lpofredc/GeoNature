@@ -1,27 +1,27 @@
 import os
 import datetime
 import requests
-import pathlib
+from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 from io import BytesIO
 from flask import current_app, url_for
-from sqlalchemy import and_
+from werkzeug.utils import secure_filename
+from sqlalchemy import and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from pypnnomenclature.models import TNomenclatures
 
-from geonature.utils.env import DB
 from geonature.core.gn_commons.models import TMedias, BibTablesLocation
-from geonature.core.gn_commons.file_manager import upload_file, remove_file, rename_file
+from geonature.utils.env import DB
 from geonature.utils.errors import GeoNatureError
 
 
 class TMediaRepository:
     """
-        Reposity permettant de manipuler un objet média
-        au niveau de la base de données et du système de fichier
-        de façon synchrone
+    Reposity permettant de manipuler un objet média
+    au niveau de la base de données et du système de fichier
+    de façon synchrone
     """
 
     media_data = dict()
@@ -49,15 +49,12 @@ class TMediaRepository:
 
     def create_or_update_media(self):
         """
-            Création ou modification d'un média :
-             - Enregistrement en base de données
-             - Stockage du fichier
+        Création ou modification d'un média :
+         - Enregistrement en base de données
+         - Stockage du fichier
         """
         if self.new:
-            try:
-                self._persist_media_db()
-            except Exception as e:
-                raise e
+            self._persist_media_db()
 
         # Si le média à un fichier associé
         if self.file:
@@ -80,7 +77,7 @@ class TMediaRepository:
             and (self.data["isFile"] is not True)
             and (self.media.media_path is not None)
         ):
-            remove_file(self.media.media_path)
+            self.media.remove(move=False)
             self.media.remove_thumbnails()
 
         # Si le média avait une url
@@ -105,7 +102,7 @@ class TMediaRepository:
 
     def _persist_media_db(self):
         """
-            Enregistrement des données dans la base
+        Enregistrement des données dans la base
         """
         # @TODO récupérer les exceptions
         try:
@@ -115,18 +112,15 @@ class TMediaRepository:
                 self.media_data[k] = getattr(self.media, k)
         except IntegrityError as exp:
             # @TODO A revoir avec les nouvelles contraintes
-            DB.session.rollback()
             if "check_entity_field_exist" in exp.args[0]:
                 raise Exception("{} doesn't exists".format(self.data["id_table_location"]))
             if "fk_t_medias_check_entity_value" in exp.args[0]:
-                raise Exception(
-                    "id {} of {} doesn't exists".format(self.data["id_table_location"])
-                )
+                raise Exception("id {} of {} doesn't exists".format(self.data["id_table_location"]))
             else:
                 raise Exception("Errors {}".format(exp.args))
 
     def absolute_file_path(self, thumbnail_height=None):
-        return os.path.join(current_app.config["BASE_DIR"], self.file_path(thumbnail_height))
+        return str(TMedias.base_dir() / self.file_path(thumbnail_height))
 
     def test_video_link(self):
         media_type = self.media_type()
@@ -150,7 +144,7 @@ class TMediaRepository:
         if media_type == "Audio" and "audio" not in content_type:
             return False
 
-        if media_type == "Vidéo (Fichier)" and "video" not in content_type:
+        if media_type == "Vidéo (fichier)" and "video" not in content_type:
             return False
 
         if media_type == "PDF" and "pdf" not in content_type:
@@ -162,7 +156,6 @@ class TMediaRepository:
         return True
 
     def test_url(self):
-
         try:
             if not self.data["media_url"]:
                 return
@@ -197,14 +190,12 @@ class TMediaRepository:
             file_path = self.media.media_path
         else:
             file_path = os.path.join(
-                current_app.config["UPLOAD_FOLDER"],
                 str(self.media.id_table_location),
                 "{}.jpg".format(self.media.id_media),
             )
 
         if thumbnail_height:
             file_path = os.path.join(
-                current_app.config["UPLOAD_FOLDER"],
                 "thumbnails",
                 str(self.media.id_table_location),
                 "{}_thumbnail_{}.jpg".format(self.media.id_media, thumbnail_height),
@@ -214,7 +205,7 @@ class TMediaRepository:
 
     def upload_file(self):
         """
-            Upload des fichiers sur le serveur
+        Upload des fichiers sur le serveur
         """
 
         # SI c'est une modification =>
@@ -225,25 +216,22 @@ class TMediaRepository:
             self.media.remove_thumbnails()
 
         # @TODO récupérer les exceptions
-        filepath = upload_file(
-            self.file,
-            str(self.media.id_table_location),
-            "{id_media}_{file_name}".format(
-                id_media=self.media.id_media, file_name=self.file.filename
-            ),
-        )
+        filename = "{}_{}".format(self.media.id_media, secure_filename(self.file.filename))
+        filedir = TMedias.base_dir() / str(self.media.id_table_location)
+        filedir.mkdir(parents=True, exist_ok=True)
+        self.file.save(str(filedir / filename))
 
-        return filepath
+        return os.path.join(str(self.media.id_table_location), filename)
 
     def is_img(self):
         return self.media_type() == "Photo"
 
     def media_type(self):
-        nomenclature = (
-            DB.session.query(TNomenclatures)
-            .filter(TNomenclatures.id_nomenclature == self.data["id_nomenclature_media_type"])
-            .one()
-        )
+        nomenclature = DB.session.execute(
+            select(TNomenclatures).where(
+                TNomenclatures.id_nomenclature == self.data["id_nomenclature_media_type"]
+            )
+        ).scalar_one()
         return nomenclature.label_fr
 
     def get_image(self):
@@ -258,28 +246,10 @@ class TMediaRepository:
 
         return image
 
-    def get_image_with_exp(self):
-        """
-            Fonction qui tente de récupérer une image
-            et qui lance des exceptions en cas d'erreur
-        """
-
-        try:
-            return self.get_image()
-        except Exception:
-            if self.media.media_path:
-                raise GeoNatureError(
-                    "Le fichier fournit ne contient pas une image valide"
-                ) from Exception
-            else:
-                raise GeoNatureError(
-                    "L'URL renseignée ne contient pas une image valide"
-                ) from Exception
-
     def has_thumbnails(self):
         """
-            Test si la liste des thumbnails
-            définis par défaut existe
+        Test si la liste des thumbnails
+        définis par défaut existe
         """
         for thumbnail_height in self.thumbnail_sizes:
             if not self.has_thumbnail(thumbnail_height):
@@ -288,7 +258,7 @@ class TMediaRepository:
 
     def has_thumbnail(self, size):
         """
-            Test si le thumbnail de taille X existe
+        Test si le thumbnail de taille X existe
         """
         if not os.path.isfile(self.absolute_file_path(size)):
             return False
@@ -296,27 +266,27 @@ class TMediaRepository:
 
     def create_thumbnails(self):
         """
-            Creation automatique des thumbnails
-            dont les tailles sont spécifiés dans la config
+        Creation automatique des thumbnails
+        dont les tailles sont spécifiés dans la config
         """
         # Test si les thumbnails existent déjà
         if self.has_thumbnails():
             return
 
-        image = self.get_image_with_exp()
+        image = self.get_image()
 
         for thumbnail_height in self.thumbnail_sizes:
             self.create_thumbnail(thumbnail_height, image)
 
     def create_thumbnail(self, size, image=None):
         if not image:
-            image = self.get_image_with_exp()
-
+            image = self.get_image()
+        image = ImageOps.exif_transpose(image)
         image_thumb = image.copy()
         width = size / image.size[1] * image.size[0]
         image_thumb.thumbnail((width, size))
         thumb_path = self.absolute_file_path(size)
-        pathlib.Path("/".join(thumb_path.split("/")[:-1])).mkdir(parents=True, exist_ok=True)
+        Path(thumb_path).parent.mkdir(parents=True, exist_ok=True)
 
         if image.mode in ("RGBA", "P"):
             image_thumb = image_thumb.convert("RGB")
@@ -326,8 +296,8 @@ class TMediaRepository:
 
     def get_thumbnail_url(self, size):
         """
-            Fonction permettant de récupérer l'url d'un thumbnail
-            Si le thumbnail n'existe pas il est créé à la volé
+        Fonction permettant de récupérer l'url d'un thumbnail
+        Si le thumbnail n'existe pas il est créé à la volé
         """
         # Get Thumb path and create if not exists
         if not self.has_thumbnail(size):
@@ -336,11 +306,9 @@ class TMediaRepository:
             thumb_path = self.absolute_file_path(size)
 
         # Get relative path
-        relative_path = os.path.relpath(
-            thumb_path, os.path.join(current_app.config["BASE_DIR"], "static")
-        )
+        relative_path = os.path.relpath(thumb_path, current_app.config["MEDIA_FOLDER"])
         # Get URL
-        thumb_url = url_for("static", filename=relative_path)
+        thumb_url = url_for("media", filename=relative_path)
         return thumb_url
 
     def delete(self):
@@ -351,67 +319,58 @@ class TMediaRepository:
         initial_path = self.media.media_path
 
         if self.media.media_path and not current_app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]:
+            self.media.__before_commit_delete__()
 
-            try:
-                self.media.__before_commit_delete__()
-
-            except FileNotFoundError:
-                raise Exception("Unable to delete file")
-
-        # Suppression du média dans la base
-        try:
-            DB.session.delete(self.media)
-            DB.session.commit()
-        except Exception:
-            if initial_path:
-                new_path = rename_file(self.media.media_path, initial_path)
+        DB.session.delete(self.media)
+        DB.session.commit()
 
     def _load_from_id(self, id_media):
         """
-            Charge un média de la base à partir de son identifiant
+        Charge un média de la base à partir de son identifiant
         """
-        media = DB.session.query(TMedias).get(id_media)
+        media = DB.session.get(TMedias, id_media)
         return media
 
 
 class TMediumRepository:
     """
-        Classe permettant de manipuler des collections
-        d'objet média
+    Classe permettant de manipuler des collections
+    d'objet média
     """
 
     def get_medium_for_entity(self, entity_uuid):
         """
-            Retourne la liste des médias pour un objet
-            en fonction de son uuid
+        Retourne la liste des médias pour un objet
+        en fonction de son uuid
         """
-        medium = DB.session.query(TMedias).filter(TMedias.uuid_attached_row == entity_uuid).all()
+        medium = DB.session.scalars(
+            select(TMedias).where(TMedias.uuid_attached_row == entity_uuid)
+        ).all()
         return medium
 
     @staticmethod
     def sync_medias():
         """
-            Met à jour les médias
-              - supprime les médias sans uuid_attached_row plus vieux que 24h
-              - supprime les médias dont l'object attaché n'existe plus
+        Met à jour les médias
+          - supprime les médias sans uuid_attached_row plus vieux que 24h
+          - supprime les médias dont l'object attaché n'existe plus
         """
 
         # delete media temp > 24h
-        res_medias_temp = (
-            DB.session.query(TMedias.id_media)
-            .filter(
+        res_medias_temp = DB.session.scalars(
+            select(TMedias.id_media).where(
                 and_(
-                    TMedias.meta_update_date < (datetime.datetime.now() - datetime.timedelta(hours=24)),
-                    TMedias.uuid_attached_row == None
+                    TMedias.meta_update_date
+                    < (datetime.datetime.now() - datetime.timedelta(hours=24)),
+                    TMedias.uuid_attached_row == None,
                 )
             )
-            .all()
-        )
+        ).all()
 
         id_medias_temp = [res.id_media for res in res_medias_temp]
 
-        if (id_medias_temp):
-            print('sync media remove temp media with ids : ', id_medias_temp)
+        if id_medias_temp:
+            print("sync media remove temp media with ids : ", id_medias_temp)
 
         for id_media in id_medias_temp:
             TMediaRepository(id_media=id_media).delete()
@@ -420,52 +379,49 @@ class TMediumRepository:
 
         # liste des id des medias fichiers
         liste_fichiers = []
-        search_path = pathlib.Path(current_app.config["BASE_DIR"],current_app.config["UPLOAD_FOLDER"])
-        for (repertoire, sous_repertoires, fichiers) in os.walk(search_path):
+        search_path = TMedias.base_dir()
+        for repertoire, sous_repertoires, fichiers in os.walk(search_path):
             for f in fichiers:
-                id_media = f.split('_')[0]
+                id_media = f.split("_")[0]
                 try:
                     id_media = int(id_media)
-                    f_data = {
-                        'id_media': id_media,
-                        'path': pathlib.Path(repertoire, f)
-                    }
+                    f_data = {"id_media": id_media, "path": Path(repertoire, f)}
                     liste_fichiers.append(f_data)
                 except ValueError:
                     pass
 
-
         # liste des media fichier supprimés en base
-        ids_media_file = [x['id_media'] for x in liste_fichiers]
+        ids_media_file = [x["id_media"] for x in liste_fichiers]
         ids_media_file = list(dict.fromkeys(ids_media_file))
 
         # suppression des fichiers dont le media n'existe plpus en base
-        ids_media_base = DB.session.query(TMedias.id_media).filter(TMedias.id_media.in_(ids_media_file)).all()
-        ids_media_base = [x[0] for x in ids_media_base]
+        ids_media_base = DB.session.scalars(
+            select(TMedias.id_media).where(TMedias.id_media.in_(ids_media_file))
+        ).all()
+        ids_media_base = [x for x in ids_media_base]
 
         ids_media_to_delete = [x for x in ids_media_file if x not in ids_media_base]
 
-        if (ids_media_to_delete):
-            print('sync media remove unassociated medias with ids : ', ids_media_to_delete)
+        if ids_media_to_delete:
+            print("sync media remove unassociated medias with ids : ", ids_media_to_delete)
 
         for f_data in liste_fichiers:
-            if f_data['id_media'] not in ids_media_to_delete:
+            if f_data["id_media"] not in ids_media_to_delete:
                 continue
-            if 'thumbnail' in str(f_data['path']):
-                os.remove(f_data['path'])
+            if "thumbnail" in str(f_data["path"]):
+                os.remove(f_data["path"])
             else:
-                deleted_paths = str(f_data['path']).split('/')
-                deleted_paths[-1] = 'deleted_' + deleted_paths[-1]
-                rename_file(f_data['path'], "/".join(deleted_paths))
+                p = Path(f_data["path"])
+                p.rename(p.parent / f"deleted_{p.name}")
+
 
 def get_table_location_id(schema_name, table_name):
     try:
-        location = (
-            DB.session.query(BibTablesLocation)
-            .filter(BibTablesLocation.schema_name == schema_name)
-            .filter(BibTablesLocation.table_name == table_name)
-            .one()
-        )
+        location = DB.session.execute(
+            select(BibTablesLocation)
+            .where(BibTablesLocation.schema_name == schema_name)
+            .where(BibTablesLocation.table_name == table_name)
+        ).scalar_one()
     except NoResultFound:
         return None
     except MultipleResultsFound:

@@ -1,163 +1,66 @@
-"""   
+"""
     Fichier de création des commandes geonature
     Ce module ne doit en aucun cas faire appel à des models ou au coeur de geonature
     dans les imports d'entête de fichier pour garantir un bon fonctionnement des fonctions
-    d'administration de l'application GeoNature (génération des fichiers de configuration, des 
-    fichiers de routing du frontend etc...). Ces dernières doivent pouvoir fonctionner même si 
+    d'administration de l'application GeoNature (génération des fichiers de configuration, des
+    fichiers de routing du frontend etc...). Ces dernières doivent pouvoir fonctionner même si
     un paquet PIP du requirement GeoNature n'a pas été bien installé
 """
-import sys
-import logging
-import subprocess
+
+import os
 import json
+from subprocess import run, DEVNULL
+from contextlib import nullcontext
 
 from jinja2 import Template
-from pathlib import Path
 
-from server import get_app
-from geonature.utils.env import (
-    BACKEND_DIR,
-    ROOT_DIR,
-    GN_MODULE_FE_FILE,
-    load_config,
-    get_config_file_path,
-    DB,
-    GN_EXTERNAL_MODULE,
-)
-from geonature.utils.errors import ConfigError
-from geonature.utils.utilstoml import load_and_validate_toml
-from geonature.utils.config_schema import GnGeneralSchemaConf
+from geonature import create_app
+from geonature.utils.env import FRONTEND_DIR
+from geonature.utils.config import config_frontend
+from geonature.utils.module import get_dist_from_code, get_module_config
 
-log = logging.getLogger(__name__)
-
-MSG_OK = "\033[92mok\033[0m\n"
+__all__ = [
+    "run",
+    "create_frontend_module_config",
+    "nvm_available",
+    "install_frontend_dependencies",
+    "build_frontend",
+]
 
 
-def start_gunicorn_cmd(uri, worker):
-    cmd = "gunicorn server:app -w {gun_worker} -b {gun_uri}"
-    subprocess.call(cmd.format(gun_worker=worker, gun_uri=uri).split(" "), cwd=str(BACKEND_DIR))
+def create_frontend_module_config(module_code, output_file=None):
+    """
+    Create the frontend config
+    """
+    module_frontend_dir = FRONTEND_DIR / "external_modules" / module_code.lower()
+    # for modules without frontend or with disabled frontend
+    if not module_frontend_dir.exists():
+        return
+    module_config = get_module_config(get_dist_from_code(module_code.upper()))
+    if output_file is None:
+        output_file = (module_frontend_dir / "app/module.config.ts").open("w")
+    else:
+        output_file = nullcontext(output_file)
+    with output_file as f:
+        f.write("export const ModuleConfig = ")
+        json.dump(module_config, f, indent=True, sort_keys=True)
 
 
-def get_app_for_cmd(config_file=None, with_external_mods=True, with_flask_admin=True):
-    """ Return the flask app object, logging error instead of raising them"""
-    try:
-        conf = load_config(config_file)
-        return get_app(
-            conf, with_external_mods=with_external_mods, with_flask_admin=with_flask_admin,
-        )
-    except ConfigError as e:
-        log.critical("%s \n" % e)
-        sys.exit(1)
+def nvm_available():
+    return run(["/usr/bin/env", "bash", "-i", "-c", "type -t nvm"], stdout=DEVNULL).returncode == 0
 
 
-def supervisor_cmd(action, app_name):
-    cmd = "sudo supervisorctl {action} {app}"
-    subprocess.call(cmd.format(action=action, app=app_name).split(" "))
+def install_frontend_dependencies(module_frontend_path):
+    cmd = ["npm", "ci", "--omit=dev", "--omit=peer"]
+    if nvm_available():
+        with (FRONTEND_DIR / ".nvmrc").open("r") as f:
+            node_version = f.read().strip()
+        cmd = ["/usr/bin/env", "bash", "-i", "-c", f"nvm exec {node_version} {' '.join(cmd)}"]
+    run(cmd, check=True, cwd=module_frontend_path)
 
 
-def start_geonature_front():
-    subprocess.call(["npm", "run", "start"], cwd=str(ROOT_DIR / "frontend"))
-
-
-def build_geonature_front(rebuild_sass=False):
-    if rebuild_sass:
-        subprocess.call(["npm", "rebuild", "node-sass", "--force"], cwd=str(ROOT_DIR / "frontend"))
-    subprocess.call(["npm", "run", "build"], cwd=str(ROOT_DIR / "frontend"))
-
-
-def frontend_routes_templating(app=None):
-    if not app:
-        app = get_app_for_cmd(with_external_mods=False)
-
-    log.info("Generating frontend routing")
-    # recuperation de la configuration
-    configs_gn = load_config(get_config_file_path())
-
-    from geonature.utils.env import list_frontend_enabled_modules
-
-    with open(
-        str(ROOT_DIR / "frontend/src/app/routing/app-routing.module.ts.sample"), "r"
-    ) as input_file:
-        template = Template(input_file.read())
-        routes = []
-        for url_path, module_code in list_frontend_enabled_modules(app):
-            location = Path(GN_EXTERNAL_MODULE / module_code.lower())
-
-            # test if module have frontend
-            if (location / "frontend").is_dir():
-                path = url_path.lstrip("/")
-                location = "{}/{}#GeonatureModule".format(location, GN_MODULE_FE_FILE)
-                routes.append({"path": path, "location": location, "module_code": module_code})
-
-            # TODO test if two modules with the same name is okay for Angular
-
-        route_template = template.render(
-            routes=routes,
-            enable_user_management=configs_gn["ACCOUNT_MANAGEMENT"].get("ENABLE_USER_MANAGEMENT"),
-            enable_sign_up=configs_gn["ACCOUNT_MANAGEMENT"].get("ENABLE_SIGN_UP"),
-        )
-
-        with open(
-            str(ROOT_DIR / "frontend/src/app/routing/app-routing.module.ts"), "w"
-        ) as output_file:
-            output_file.write(route_template)
-
-    log.info("...%s\n", MSG_OK)
-
-
-def tsconfig_templating():
-    log.info("Generating tsconfig.json")
-    with open(str(ROOT_DIR / "frontend/tsconfig.json.sample"), "r") as input_file:
-        template = Template(input_file.read())
-        tsconfig_templated = template.render(geonature_path=ROOT_DIR)
-
-    with open(str(ROOT_DIR / "frontend/tsconfig.json"), "w") as output_file:
-        output_file.write(tsconfig_templated)
-    log.info("...%s\n", MSG_OK)
-
-
-def tsconfig_app_templating(app=None):
-    if not app:
-        app = get_app_for_cmd(with_external_mods=False)
-    log.info("Generating tsconfig.app.json")
-    from geonature.utils.env import list_frontend_enabled_modules
-
-    with open(str(ROOT_DIR / "frontend/src/tsconfig.app.json.sample"), "r") as input_file:
-        template = Template(input_file.read())
-        routes = []
-        for url_path, module_code in list_frontend_enabled_modules(app):
-            location = Path(GN_EXTERNAL_MODULE / module_code.lower())
-
-            # test if module have frontend
-            if (location / "frontend").is_dir():
-                location = "{}/frontend/app".format(location)
-                routes.append({"location": location})
-
-            # TODO test if two modules with the same name is okay for Angular
-
-        route_template = template.render(routes=routes)
-
-        with open(str(ROOT_DIR / "frontend/src/tsconfig.app.json"), "w") as output_file:
-            output_file.write(route_template)
-
-    log.info("...%s\n", MSG_OK)
-
-
-def create_frontend_config(conf_file):
-    log.info("Generating configuration")
-    configs_gn = load_and_validate_toml(conf_file, GnGeneralSchemaConf)
-
-    with open(str(ROOT_DIR / "frontend/src/conf/app.config.ts"), "w") as outputfile:
-        outputfile.write("export const AppConfig = ")
-        json.dump(configs_gn, outputfile, indent=True)
-    log.info("...%s\n", MSG_OK)
-
-
-def update_app_configuration(conf_file, build=True, prod=True):
-    log.info("Update app configuration")
-    if prod:
-        subprocess.call(["sudo", "supervisorctl", "reload"])
-    create_frontend_config(conf_file)
-    if build:
-        subprocess.call(["npm", "run", "build"], cwd=str(ROOT_DIR / "frontend"))
-    log.info("...%s\n", MSG_OK)
+def build_frontend():
+    cmd = ["npm", "run", "build"]
+    if nvm_available():
+        cmd = ["/usr/bin/env", "bash", "-i", "-c", f"nvm exec {' '.join(cmd)}"]
+    run(cmd, check=True, cwd=str(FRONTEND_DIR))

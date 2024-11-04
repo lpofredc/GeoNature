@@ -1,46 +1,91 @@
-import { throwError as observableThrowError, Observable } from 'rxjs';
+import { throwError, Observable } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Injectable, Injector } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
-import { AuthService } from '@geonature/components/auth/auth.service';
-import { Router } from '@angular/router';
-
-const WHITE_LIST = ['nominatim.openstreetmap.org'];
+import {
+  HttpInterceptor,
+  HttpRequest,
+  HttpHandler,
+  HttpEvent,
+  HttpErrorResponse,
+} from '@angular/common/http';
+import { ToastrService } from 'ngx-toastr';
+import { ActivatedRoute } from '@angular/router';
+import { ConfigService } from './config.service';
 
 @Injectable()
 export class MyCustomInterceptor implements HttpInterceptor {
-  constructor(public inj: Injector, public router: Router) {}
+  constructor(
+    public inj: Injector,
+    public route: ActivatedRoute,
+    private _toastrService: ToastrService,
+    public config: ConfigService
+  ) {}
 
-  private handleError(error: Response | any) {
+  private handleError(error: any) {
+    let errTitle: string;
     let errMsg: string;
-    if (error instanceof Response) {
-      const body = error.json() || '';
-      const err = JSON.stringify(body);
-      errMsg = `${error.status} - ${error.statusText || ''} ${err}`;
+    let enableHtml: boolean = false;
+    if (error instanceof HttpErrorResponse) {
+      if ([401, 404].includes(error.status)) return;
+      if (error.status == 502) {
+        errTitle = 'Timeout';
+        errMsg = 'La requête n’a pas abouti dans le temps imparti';
+      } else if (
+        typeof error.error === 'object' &&
+        'name' in error.error &&
+        'description' in error.error
+      ) {
+        errTitle = error.error.name;
+        errMsg = error.error.description;
+        enableHtml = true;
+        if ('request_id' in error.error) {
+          errMsg += `<br><b>Requête :</b> ${error.error.request_id}`;
+        }
+      } else {
+        errTitle = error.name;
+        errMsg = error.message;
+      }
     } else {
-      errMsg = error.message ? error.message : error.toString();
+      errTitle = 'Erreur';
+      errMsg = 'Une erreur inconnue est survenue.';
     }
+    this._toastrService.error(errMsg, errTitle, {
+      disableTimeOut: true,
+      tapToDismiss: false,
+      closeButton: true,
+      easeTime: 0,
+      enableHtml: enableHtml,
+    });
   }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // add a custom header
-    const customReq = request.clone({
-      withCredentials: true
-    });
-
-    //Creation d'une liste blanche pour autoriser les CROS request.
-    if (WHITE_LIST.indexOf(this.extractHostname(request.url)) === -1) {
-      // add a custom header
+    // set withCredential = true to send and accept cookie from the API
+    if (
+      this.config.API_ENDPOINT &&
+      this.extractHostname(this.config.API_ENDPOINT) == this.extractHostname(request.url)
+    ) {
       request = request.clone({
-        withCredentials: true
+        withCredentials: true,
+      });
+    }
+    // Pass JWT in header for each request
+    const idToken = localStorage.getItem('gn_id_token');
+    if (idToken) {
+      request = request.clone({
+        headers: request.headers.set('Authorization', 'Bearer ' + idToken),
       });
     }
 
     // pass on the modified request object
     // and intercept error
-    return next.handle(request).catch((err: any) => {
-      this.handleError(err);
-      return observableThrowError(err);
-    });
+    return next.handle(request).pipe(
+      catchError((err) => {
+        if (!request.headers.get('not-to-handle')) {
+          this.handleError(err);
+        }
+        return throwError(err);
+      })
+    );
   }
 
   private extractHostname(url) {
