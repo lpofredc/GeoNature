@@ -1,4 +1,6 @@
 
+\restrict 9JQcyU7huAHUFiA6kPEYZi3P7ZQqdhpoyY9zsI99cAeG4Nfc5eA32b3L7ZPJkP8
+
 CREATE TABLE gn_imports.bib_themes (
     id_theme integer NOT NULL,
     name_theme character varying(100) NOT NULL,
@@ -20,4 +22,6 @@ ALTER SEQUENCE gn_imports.dict_themes_id_theme_seq OWNED BY gn_imports.bib_theme
 
 ALTER TABLE ONLY gn_imports.bib_themes
     ADD CONSTRAINT pk_dict_themes_id_theme PRIMARY KEY (id_theme);
+
+\unrestrict 9JQcyU7huAHUFiA6kPEYZi3P7ZQqdhpoyY9zsI99cAeG4Nfc5eA32b3L7ZPJkP8
 

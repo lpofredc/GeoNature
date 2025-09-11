@@ -1,4 +1,6 @@
 
+\restrict EauiFt9ifUgfDDaL8cDifJQdC34U5Igpm9AIjZXn6chKARS3Bzx56GzFC61zqqg
+
 CREATE TABLE ref_habitats.typoref_fields (
     cd_hab_field integer NOT NULL,
     cd_typo integer NOT NULL,
@@ -14,4 +16,6 @@ CREATE TABLE ref_habitats.typoref_fields (
 
 ALTER TABLE ONLY ref_habitats.typoref_fields
     ADD CONSTRAINT pk_typoref_fields PRIMARY KEY (cd_hab_field);
+
+\unrestrict EauiFt9ifUgfDDaL8cDifJQdC34U5Igpm9AIjZXn6chKARS3Bzx56GzFC61zqqg
 

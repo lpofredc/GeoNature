@@ -1,4 +1,6 @@
 
+\restrict ddsBqpUOjpUNsTO9ya6qiCu6TuVpdUdLVLEXSgM9GR7Qtt5Cux9jXgz0J7iVbjP
+
 CREATE TABLE ref_habitats.typoref (
     cd_typo integer NOT NULL,
     cd_table character varying(255),
@@ -40,4 +42,6 @@ ALTER SEQUENCE ref_habitats.typoref_cd_typo_seq OWNED BY ref_habitats.typoref.cd
 
 ALTER TABLE ONLY ref_habitats.typoref
     ADD CONSTRAINT pk_typoref PRIMARY KEY (cd_typo);
+
+\unrestrict ddsBqpUOjpUNsTO9ya6qiCu6TuVpdUdLVLEXSgM9GR7Qtt5Cux9jXgz0J7iVbjP
 

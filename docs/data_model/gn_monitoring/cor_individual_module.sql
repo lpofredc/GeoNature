@@ -1,4 +1,6 @@
 
+\restrict ZNi5qbyDhLTOfXfGjCZgzXg7m88ibGbusU4o3xZ3Oe04tPFoMzFTdAP82GHVp4b
+
 CREATE TABLE gn_monitoring.cor_individual_module (
     id_individual integer NOT NULL,
     id_module integer NOT NULL
@@ -12,4 +14,6 @@ ALTER TABLE ONLY gn_monitoring.cor_individual_module
 
 ALTER TABLE ONLY gn_monitoring.cor_individual_module
     ADD CONSTRAINT cor_individual_module_id_module_fkey FOREIGN KEY (id_module) REFERENCES gn_commons.t_modules(id_module) ON DELETE CASCADE;
+
+\unrestrict ZNi5qbyDhLTOfXfGjCZgzXg7m88ibGbusU4o3xZ3Oe04tPFoMzFTdAP82GHVp4b
 

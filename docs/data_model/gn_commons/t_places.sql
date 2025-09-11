@@ -1,4 +1,6 @@
 
+\restrict KoCR8taw28ZHzyH4FZB2nyXHA5kH8gi7M3qo0Q197cN33aWt5IhU50Z5Kmush6S
+
 CREATE TABLE gn_commons.t_places (
     id_place integer NOT NULL,
     id_role integer NOT NULL,
@@ -29,4 +31,6 @@ ALTER TABLE ONLY gn_commons.t_places
 
 ALTER TABLE ONLY gn_commons.t_places
     ADD CONSTRAINT fk_t_places_t_roles FOREIGN KEY (id_role) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE;
+
+\unrestrict KoCR8taw28ZHzyH4FZB2nyXHA5kH8gi7M3qo0Q197cN33aWt5IhU50Z5Kmush6S
 

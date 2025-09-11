@@ -1,4 +1,6 @@
 
+\restrict SBqXWVg81iyQ3ckLAd2tJ0Yop23pg3pMMBYT83VAr96j7o6MhyyRAWUz6inGA6I
+
 CREATE TABLE ref_habitats.autocomplete_habitat (
     cd_hab integer NOT NULL,
     cd_typo integer NOT NULL,
@@ -9,4 +11,6 @@ CREATE TABLE ref_habitats.autocomplete_habitat (
 
 ALTER TABLE ONLY ref_habitats.autocomplete_habitat
     ADD CONSTRAINT pk_autocomplete_habitat PRIMARY KEY (cd_hab);
+
+\unrestrict SBqXWVg81iyQ3ckLAd2tJ0Yop23pg3pMMBYT83VAr96j7o6MhyyRAWUz6inGA6I
 

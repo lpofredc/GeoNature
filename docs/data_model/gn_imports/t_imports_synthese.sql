@@ -1,4 +1,6 @@
 
+\restrict 3MwoZV73vnwyC8J8QxBlUz4YdsM9pxoy27YjwfjIyn67ozOxkZxCcarYxG4fzwN
+
 CREATE TABLE gn_imports.t_imports_synthese (
     id_import integer NOT NULL,
     line_no integer NOT NULL,
@@ -193,4 +195,6 @@ ALTER TABLE ONLY gn_imports.t_imports_synthese
 
 ALTER TABLE ONLY gn_imports.t_imports_synthese
     ADD CONSTRAINT t_imports_synthese_id_nomenclature_valid_status_fkey FOREIGN KEY (id_nomenclature_valid_status) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature);
+
+\unrestrict 3MwoZV73vnwyC8J8QxBlUz4YdsM9pxoy27YjwfjIyn67ozOxkZxCcarYxG4fzwN
 

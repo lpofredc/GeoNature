@@ -1,4 +1,6 @@
 
+\restrict gy4Y8k4rkvKOyKzPgPi4upvzQc0ictQhHQqpA9TMERbN5KuyMSbzDQp3tarcutN
+
 CREATE TABLE pr_occhab.t_habitats (
     id_habitat integer NOT NULL,
     id_station integer NOT NULL,
@@ -76,4 +78,6 @@ ALTER TABLE ONLY pr_occhab.t_habitats
 
 ALTER TABLE ONLY pr_occhab.t_habitats
     ADD CONSTRAINT t_habitats_id_import_fkey FOREIGN KEY (id_import) REFERENCES gn_imports.t_imports(id_import) ON UPDATE CASCADE;
+
+\unrestrict gy4Y8k4rkvKOyKzPgPi4upvzQc0ictQhHQqpA9TMERbN5KuyMSbzDQp3tarcutN
 

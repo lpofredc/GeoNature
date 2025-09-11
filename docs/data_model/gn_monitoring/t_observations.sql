@@ -1,4 +1,6 @@
 
+\restrict mCpJgX0DsvWRCT7FcCHQ4H9xOQJyI5XID56qYgYiWGkBNdMYtWqAHQ9vSpJWJli
+
 CREATE TABLE gn_monitoring.t_observations (
     id_observation integer NOT NULL,
     id_base_visit integer NOT NULL,
@@ -35,4 +37,6 @@ ALTER TABLE ONLY gn_monitoring.t_observations
 
 ALTER TABLE ONLY gn_monitoring.t_observations
     ADD CONSTRAINT fk_t_observations_id_individual FOREIGN KEY (id_individual) REFERENCES gn_monitoring.t_individuals(id_individual) ON UPDATE CASCADE;
+
+\unrestrict mCpJgX0DsvWRCT7FcCHQ4H9xOQJyI5XID56qYgYiWGkBNdMYtWqAHQ9vSpJWJli
 

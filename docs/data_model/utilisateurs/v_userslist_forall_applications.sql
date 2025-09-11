@@ -1,4 +1,6 @@
 
+\restrict pNmUyVvFhGWp7PkLDVuXukyPiYabHiwBV272KYCPhpBr0MkZHt1Ld4yEpNajO5f
+
 CREATE VIEW utilisateurs.v_userslist_forall_applications AS
  SELECT d.groupe,
     d.active,
@@ -20,4 +22,6 @@ CREATE VIEW utilisateurs.v_userslist_forall_applications AS
     d.id_application
    FROM utilisateurs.v_roleslist_forall_applications d
   WHERE (d.groupe = false);
+
+\unrestrict pNmUyVvFhGWp7PkLDVuXukyPiYabHiwBV272KYCPhpBr0MkZHt1Ld4yEpNajO5f
 

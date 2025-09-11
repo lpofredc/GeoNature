@@ -1,4 +1,6 @@
 
+\restrict IRxlrawZ7hL7AGveV8mtVmiWimt6ygPdaFymidevkuusjqieXI8B5Xl61zC8L9p
+
 CREATE TABLE gn_meta.sinp_datatype_publications (
     id_publication integer NOT NULL,
     unique_publication_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
@@ -30,4 +32,6 @@ ALTER TABLE ONLY gn_meta.sinp_datatype_publications
 
 ALTER TABLE ONLY gn_meta.sinp_datatype_publications
     ADD CONSTRAINT unique_sinp_datatype_publications_uuid UNIQUE (unique_publication_id);
+
+\unrestrict IRxlrawZ7hL7AGveV8mtVmiWimt6ygPdaFymidevkuusjqieXI8B5Xl61zC8L9p
 

@@ -1,4 +1,6 @@
 
+\restrict 2TXKn4aDvMFu9UScGb7578jsbY5ahecwue3FBNGptArhsDJ1I74hscVYAyGI3U2
+
 CREATE TABLE gn_permissions.cor_permission_taxref (
     id_permission integer NOT NULL,
     cd_nom integer NOT NULL
@@ -12,4 +14,6 @@ ALTER TABLE ONLY gn_permissions.cor_permission_taxref
 
 ALTER TABLE ONLY gn_permissions.cor_permission_taxref
     ADD CONSTRAINT cor_permission_taxref_id_permission_fkey FOREIGN KEY (id_permission) REFERENCES gn_permissions.t_permissions(id_permission);
+
+\unrestrict 2TXKn4aDvMFu9UScGb7578jsbY5ahecwue3FBNGptArhsDJ1I74hscVYAyGI3U2
 

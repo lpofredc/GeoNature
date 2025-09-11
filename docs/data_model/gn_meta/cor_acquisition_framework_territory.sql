@@ -1,4 +1,6 @@
 
+\restrict x7byvK9cs4PNDmhM3WyTa45fIiROtbvgoi9NAeoo5O8gyZPZil3R7Q06XLZ16xc
+
 CREATE TABLE gn_meta.cor_acquisition_framework_territory (
     id_acquisition_framework integer NOT NULL,
     id_nomenclature_territory integer NOT NULL
@@ -17,4 +19,6 @@ ALTER TABLE ONLY gn_meta.cor_acquisition_framework_territory
 
 ALTER TABLE ONLY gn_meta.cor_acquisition_framework_territory
     ADD CONSTRAINT fk_cor_af_territory_id_nomenclature_territory FOREIGN KEY (id_nomenclature_territory) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature) ON UPDATE CASCADE;
+
+\unrestrict x7byvK9cs4PNDmhM3WyTa45fIiROtbvgoi9NAeoo5O8gyZPZil3R7Q06XLZ16xc
 

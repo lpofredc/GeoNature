@@ -1,4 +1,6 @@
 
+\restrict TTKoGT86dg2uF2hHmKRGPGaGGJOhYbrHIAcOKMczsnqxrvxX3ig80ckuXvaeLHb
+
 CREATE VIEW ref_nomenclatures.v_eta_bio AS
  SELECT n.id_nomenclature,
     n.mnemonique,
@@ -9,4 +11,6 @@ CREATE VIEW ref_nomenclatures.v_eta_bio AS
    FROM (ref_nomenclatures.t_nomenclatures n
      LEFT JOIN ref_nomenclatures.bib_nomenclatures_types t ON ((t.id_type = n.id_type)))
   WHERE (((t.mnemonique)::text = 'ETA_BIO'::text) AND (n.active = true));
+
+\unrestrict TTKoGT86dg2uF2hHmKRGPGaGGJOhYbrHIAcOKMczsnqxrvxX3ig80ckuXvaeLHb
 

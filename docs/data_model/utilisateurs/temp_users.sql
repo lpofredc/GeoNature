@@ -1,4 +1,6 @@
 
+\restrict JdZPnnsDo7youtEr2nRly5jpQb4UftWTamJefRaj2kgmdz5zVHxHZ3dEQYPzryX
+
 CREATE TABLE utilisateurs.temp_users (
     id_temp_user integer NOT NULL,
     token_role text,
@@ -40,4 +42,6 @@ ALTER TABLE ONLY utilisateurs.temp_users
 
 ALTER TABLE ONLY utilisateurs.temp_users
     ADD CONSTRAINT temp_user_id_organisme_fkey FOREIGN KEY (id_application) REFERENCES utilisateurs.t_applications(id_application) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict JdZPnnsDo7youtEr2nRly5jpQb4UftWTamJefRaj2kgmdz5zVHxHZ3dEQYPzryX
 

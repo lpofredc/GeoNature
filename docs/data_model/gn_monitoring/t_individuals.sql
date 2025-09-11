@@ -1,4 +1,6 @@
 
+\restrict pUXIolimxiaIeFnqg4ylilAs7oTCSS7pL84e1NimCW7QHerx4R0ApBuz6SybIiu
+
 CREATE TABLE gn_monitoring.t_individuals (
     id_individual integer NOT NULL,
     uuid_individual uuid DEFAULT public.uuid_generate_v4() NOT NULL,
@@ -35,4 +37,6 @@ ALTER TABLE ONLY gn_monitoring.t_individuals
 
 ALTER TABLE ONLY gn_monitoring.t_individuals
     ADD CONSTRAINT t_individuals_id_nomenclature_sex_fkey FOREIGN KEY (id_nomenclature_sex) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature);
+
+\unrestrict pUXIolimxiaIeFnqg4ylilAs7oTCSS7pL84e1NimCW7QHerx4R0ApBuz6SybIiu
 

@@ -1,4 +1,6 @@
 
+\restrict VnYOPb7y8yk7THdEfX3S61hoFdl4rYjF9LQDmYB19pbbFfJ3UjGMR7swOc1jgFa
+
 CREATE TABLE gn_synthese.defaults_nomenclatures_value (
     mnemonique_type character varying(50) NOT NULL,
     id_organism integer DEFAULT 0 NOT NULL,
@@ -24,4 +26,6 @@ ALTER TABLE ONLY gn_synthese.defaults_nomenclatures_value
 
 ALTER TABLE ONLY gn_synthese.defaults_nomenclatures_value
     ADD CONSTRAINT fk_gn_synthese_defaults_nomenclatures_value_mnemonique_type FOREIGN KEY (mnemonique_type) REFERENCES ref_nomenclatures.bib_nomenclatures_types(mnemonique) ON UPDATE CASCADE;
+
+\unrestrict VnYOPb7y8yk7THdEfX3S61hoFdl4rYjF9LQDmYB19pbbFfJ3UjGMR7swOc1jgFa
 

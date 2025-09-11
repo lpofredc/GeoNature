@@ -1,4 +1,6 @@
 
+\restrict 6nglu9Q8AHM0fzxXAGs8SznwEYJ2CWV7FF4pFaeGiAD49VfccCkkYp5YcyEvpe2
+
 CREATE TABLE gn_sensitivity.cor_sensitivity_area_type (
     id_nomenclature_sensitivity integer,
     id_area_type integer
@@ -9,4 +11,6 @@ ALTER TABLE ONLY gn_sensitivity.cor_sensitivity_area_type
 
 ALTER TABLE ONLY gn_sensitivity.cor_sensitivity_area_type
     ADD CONSTRAINT cor_sensitivity_area_type_id_nomenclature_sensitivity_fkey FOREIGN KEY (id_nomenclature_sensitivity) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature);
+
+\unrestrict 6nglu9Q8AHM0fzxXAGs8SznwEYJ2CWV7FF4pFaeGiAD49VfccCkkYp5YcyEvpe2
 

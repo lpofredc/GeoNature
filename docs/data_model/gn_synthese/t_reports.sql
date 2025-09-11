@@ -1,4 +1,6 @@
 
+\restrict 2CBohRnRcCtD2Gso3Zk204fELGXlZI2YXi9jtenKkcDwlT4X3MamVaxbMIA9php
+
 CREATE TABLE gn_synthese.t_reports (
     id_report integer NOT NULL,
     id_synthese integer NOT NULL,
@@ -30,4 +32,6 @@ ALTER TABLE ONLY gn_synthese.t_reports
 
 ALTER TABLE ONLY gn_synthese.t_reports
     ADD CONSTRAINT fk_report_type FOREIGN KEY (id_type) REFERENCES gn_synthese.bib_reports_types(id_type) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict 2CBohRnRcCtD2Gso3Zk204fELGXlZI2YXi9jtenKkcDwlT4X3MamVaxbMIA9php
 

@@ -1,4 +1,6 @@
 
+\restrict K3GIDElcQy9DQxVkrZWRrs4EvAsDRkaxEhItaI0sMesRfnerlhT1qpt4UdWAljN
+
 CREATE TABLE gn_notifications.bib_notifications_methods (
     code character varying NOT NULL,
     label character varying,
@@ -7,4 +9,6 @@ CREATE TABLE gn_notifications.bib_notifications_methods (
 
 ALTER TABLE ONLY gn_notifications.bib_notifications_methods
     ADD CONSTRAINT bib_notifications_methods_pkey PRIMARY KEY (code);
+
+\unrestrict K3GIDElcQy9DQxVkrZWRrs4EvAsDRkaxEhItaI0sMesRfnerlhT1qpt4UdWAljN
 

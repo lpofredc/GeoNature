@@ -1,4 +1,6 @@
 
+\restrict yPUJuMZ9OHxISRZtI7xRmKafgafvHd3If2dGEepKxEH8mH76QsBRlh4qw4Ah1AN
+
 CREATE TABLE utilisateurs.cor_role_app_profil (
     id_role integer NOT NULL,
     id_application integer NOT NULL,
@@ -22,4 +24,6 @@ ALTER TABLE ONLY utilisateurs.cor_role_app_profil
 
 ALTER TABLE ONLY utilisateurs.cor_role_app_profil
     ADD CONSTRAINT fk_cor_role_app_profil_id_role FOREIGN KEY (id_role) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict yPUJuMZ9OHxISRZtI7xRmKafgafvHd3If2dGEepKxEH8mH76QsBRlh4qw4Ah1AN
 

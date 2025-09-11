@@ -1,4 +1,6 @@
 
+\restrict HfZn8ZeGZdA7Ms0bk6qUTUcvmF6DbEn3SsdqJd2E8lOshDT1a63s8oXI9R2sHNo
+
 CREATE TABLE gn_commons.cor_field_dataset (
     id_field integer NOT NULL,
     id_dataset integer NOT NULL
@@ -12,4 +14,6 @@ ALTER TABLE ONLY gn_commons.cor_field_dataset
 
 ALTER TABLE ONLY gn_commons.cor_field_dataset
     ADD CONSTRAINT fk_cor_field_dataset_field FOREIGN KEY (id_field) REFERENCES gn_commons.t_additional_fields(id_field) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict HfZn8ZeGZdA7Ms0bk6qUTUcvmF6DbEn3SsdqJd2E8lOshDT1a63s8oXI9R2sHNo
 

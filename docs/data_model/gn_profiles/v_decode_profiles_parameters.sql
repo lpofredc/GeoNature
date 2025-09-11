@@ -1,4 +1,6 @@
 
+\restrict 2b5aHHOpGq9griyuNa5ItxFXgxVIH0TbBmuALi5zRSk9LrnsHeldh2lGsQz9tf5
+
 CREATE VIEW gn_profiles.v_decode_profiles_parameters AS
  SELECT t.cd_ref,
     t.lb_nom,
@@ -8,4 +10,6 @@ CREATE VIEW gn_profiles.v_decode_profiles_parameters AS
     p.active_life_stage
    FROM (gn_profiles.cor_taxons_parameters p
      LEFT JOIN taxonomie.taxref t ON ((p.cd_nom = t.cd_nom)));
+
+\unrestrict 2b5aHHOpGq9griyuNa5ItxFXgxVIH0TbBmuALi5zRSk9LrnsHeldh2lGsQz9tf5
 

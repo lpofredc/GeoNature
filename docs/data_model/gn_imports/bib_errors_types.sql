@@ -1,4 +1,6 @@
 
+\restrict GDzwU7ldWZC3h5qSqU3cghXS3LnBqGAIShehLj4sLkREQXtr60xMN9ySquzxiyM
+
 CREATE TABLE gn_imports.bib_errors_types (
     id_error integer NOT NULL,
     error_type character varying(100) NOT NULL,
@@ -22,4 +24,6 @@ ALTER TABLE ONLY gn_imports.bib_errors_types
 
 ALTER TABLE ONLY gn_imports.bib_errors_types
     ADD CONSTRAINT t_user_errors_name_key UNIQUE (name);
+
+\unrestrict GDzwU7ldWZC3h5qSqU3cghXS3LnBqGAIShehLj4sLkREQXtr60xMN9ySquzxiyM
 

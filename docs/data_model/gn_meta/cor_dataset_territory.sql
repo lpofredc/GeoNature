@@ -1,4 +1,6 @@
 
+\restrict zpRAgLeVsXztLRvbHa3GunPG5MBeKdIVSA4ntrSRSXMqEQXHGKbcKvBGPBnsSuV
+
 CREATE TABLE gn_meta.cor_dataset_territory (
     id_dataset integer NOT NULL,
     id_nomenclature_territory integer NOT NULL,
@@ -20,4 +22,6 @@ ALTER TABLE ONLY gn_meta.cor_dataset_territory
 
 ALTER TABLE ONLY gn_meta.cor_dataset_territory
     ADD CONSTRAINT fk_cor_dataset_territory_id_nomenclature_territory FOREIGN KEY (id_nomenclature_territory) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature) ON UPDATE CASCADE;
+
+\unrestrict zpRAgLeVsXztLRvbHa3GunPG5MBeKdIVSA4ntrSRSXMqEQXHGKbcKvBGPBnsSuV
 

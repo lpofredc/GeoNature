@@ -1,4 +1,6 @@
 
+\restrict gQ37gcyHtFmdIPrWOCn4oRnSIeffGPwGdDGhc3u5d5B3PO02qQrgqmqKrKXXjAj
+
 CREATE MATERIALIZED VIEW taxonomie.vm_taxref_tree AS
  WITH RECURSIVE biota AS (
          SELECT t.cd_nom,
@@ -31,4 +33,6 @@ UNION
 CREATE UNIQUE INDEX taxref_tree_cd_nom_idx ON taxonomie.vm_taxref_tree USING btree (cd_nom);
 
 CREATE INDEX taxref_tree_path_idx ON taxonomie.vm_taxref_tree USING gist (path);
+
+\unrestrict gQ37gcyHtFmdIPrWOCn4oRnSIeffGPwGdDGhc3u5d5B3PO02qQrgqmqKrKXXjAj
 

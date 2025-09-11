@@ -1,4 +1,6 @@
 
+\restrict 8aOp5scwkBKLtv0J5fo4wQrgmWi7ba500GMHdw8hLm9R8BR00gAvypo8hzMDeTa
+
 CREATE TABLE pr_occhab.t_stations (
     id_station integer NOT NULL,
     unique_id_sinp_station uuid DEFAULT public.uuid_generate_v4(),
@@ -97,4 +99,6 @@ ALTER TABLE ONLY pr_occhab.t_stations
 
 ALTER TABLE ONLY pr_occhab.t_stations
     ADD CONSTRAINT t_stations_id_nomenclature_type_sol_fkey FOREIGN KEY (id_nomenclature_type_sol) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature);
+
+\unrestrict 8aOp5scwkBKLtv0J5fo4wQrgmWi7ba500GMHdw8hLm9R8BR00gAvypo8hzMDeTa
 

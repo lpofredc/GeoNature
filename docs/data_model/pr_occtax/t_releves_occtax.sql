@@ -1,4 +1,6 @@
 
+\restrict LfQcMHoXWTCGAB2JaHDNAL0r86ROUodIJOcQG6Vj9yZtxifYRewUrqsRXUyljDw
+
 CREATE TABLE pr_occtax.t_releves_occtax (
     id_releve_occtax bigint NOT NULL,
     unique_id_sinp_grp uuid DEFAULT public.uuid_generate_v4() NOT NULL,
@@ -103,4 +105,6 @@ ALTER TABLE ONLY pr_occtax.t_releves_occtax
 
 ALTER TABLE ONLY pr_occtax.t_releves_occtax
     ADD CONSTRAINT fk_t_releves_occtax_t_roles FOREIGN KEY (id_digitiser) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE;
+
+\unrestrict LfQcMHoXWTCGAB2JaHDNAL0r86ROUodIJOcQG6Vj9yZtxifYRewUrqsRXUyljDw
 

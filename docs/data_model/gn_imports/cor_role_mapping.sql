@@ -1,4 +1,6 @@
 
+\restrict G27Hf1TnFbwP3xwHzSfT0F2dlqQoaJfSCatVm6ywyYQS1aXA5cP7qFcAlyB7oo5
+
 CREATE TABLE gn_imports.cor_role_mapping (
     id_role integer NOT NULL,
     id_mapping integer NOT NULL
@@ -12,4 +14,6 @@ ALTER TABLE ONLY gn_imports.cor_role_mapping
 
 ALTER TABLE ONLY gn_imports.cor_role_mapping
     ADD CONSTRAINT fk_utilisateurs_t_roles FOREIGN KEY (id_role) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict G27Hf1TnFbwP3xwHzSfT0F2dlqQoaJfSCatVm6ywyYQS1aXA5cP7qFcAlyB7oo5
 

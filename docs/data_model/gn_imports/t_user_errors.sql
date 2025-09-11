@@ -1,4 +1,6 @@
 
+\restrict tIdjAoaeFCGDptgjhH5kUHhuj3Q9HclGXh1KfkqBM8vyhEmrQR3GhLcCGRd8jp4
+
 CREATE TABLE gn_imports.t_user_errors (
     id_user_error integer NOT NULL,
     id_import integer NOT NULL,
@@ -34,4 +36,6 @@ ALTER TABLE ONLY gn_imports.t_user_errors
 
 ALTER TABLE ONLY gn_imports.t_user_errors
     ADD CONSTRAINT t_user_errors_id_entity_fkey FOREIGN KEY (id_entity) REFERENCES gn_imports.bib_entities(id_entity) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict tIdjAoaeFCGDptgjhH5kUHhuj3Q9HclGXh1KfkqBM8vyhEmrQR3GhLcCGRd8jp4
 

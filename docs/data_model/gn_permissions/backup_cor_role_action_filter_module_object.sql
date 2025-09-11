@@ -1,4 +1,6 @@
 
+\restrict nEZMrwm7lcsdogtuQQ7CcMbK5zXLo1aAdrk3IWL1hsvJB96DgyU6hLV0DuTrW5c
+
 CREATE TABLE gn_permissions.backup_cor_role_action_filter_module_object (
     id_permission integer NOT NULL,
     id_role integer NOT NULL,
@@ -25,4 +27,6 @@ ALTER TABLE ONLY gn_permissions.backup_cor_role_action_filter_module_object
 
 ALTER TABLE ONLY gn_permissions.backup_cor_role_action_filter_module_object
     ADD CONSTRAINT backup_fk_cor_r_a_f_m_o_id_role FOREIGN KEY (id_role) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict nEZMrwm7lcsdogtuQQ7CcMbK5zXLo1aAdrk3IWL1hsvJB96DgyU6hLV0DuTrW5c
 

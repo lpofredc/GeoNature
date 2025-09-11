@@ -1,4 +1,6 @@
 
+\restrict HewPRcQDdgSochnbxaQCsTmmAy1tUrBwVLMWWiFPooF6U3ddBTgfRwk8x3DdBRj
+
 CREATE TABLE gn_profiles.cor_taxons_parameters (
     cd_nom integer NOT NULL,
     spatial_precision integer,
@@ -11,4 +13,6 @@ ALTER TABLE ONLY gn_profiles.cor_taxons_parameters
 
 ALTER TABLE ONLY gn_profiles.cor_taxons_parameters
     ADD CONSTRAINT fk_cor_taxons_parameters_cd_nom FOREIGN KEY (cd_nom) REFERENCES taxonomie.taxref(cd_nom) ON UPDATE CASCADE;
+
+\unrestrict HewPRcQDdgSochnbxaQCsTmmAy1tUrBwVLMWWiFPooF6U3ddBTgfRwk8x3DdBRj
 

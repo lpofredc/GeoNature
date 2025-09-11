@@ -1,4 +1,6 @@
 
+\restrict AeRJi89Xgn583FTxBEUB4ZVTua3lKdM0bnobPvlG5DEqbq65V1f9jwQ7WU722eQ
+
 CREATE TABLE gn_imports.bib_destinations (
     id_destination integer NOT NULL,
     id_module integer,
@@ -25,4 +27,6 @@ ALTER TABLE ONLY gn_imports.bib_destinations
 
 ALTER TABLE ONLY gn_imports.bib_destinations
     ADD CONSTRAINT bib_destinations_id_module_fkey FOREIGN KEY (id_module) REFERENCES gn_commons.t_modules(id_module) ON DELETE CASCADE;
+
+\unrestrict AeRJi89Xgn583FTxBEUB4ZVTua3lKdM0bnobPvlG5DEqbq65V1f9jwQ7WU722eQ
 

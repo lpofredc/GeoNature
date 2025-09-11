@@ -1,4 +1,6 @@
 
+\restrict PaE9eVV3RP4y6rpTHnKCFuwkYff9nBb7RPWUlBXJtw95JlSiqYUHBkGhuPGYUmF
+
 CREATE TABLE ref_geo.bib_linears_types (
     id_type integer NOT NULL,
     type_name character varying(200) NOT NULL,
@@ -26,4 +28,6 @@ ALTER TABLE ONLY ref_geo.bib_linears_types
 
 ALTER TABLE ONLY ref_geo.bib_linears_types
     ADD CONSTRAINT pk_ref_geo_bib_linears_types_id_type PRIMARY KEY (id_type);
+
+\unrestrict PaE9eVV3RP4y6rpTHnKCFuwkYff9nBb7RPWUlBXJtw95JlSiqYUHBkGhuPGYUmF
 

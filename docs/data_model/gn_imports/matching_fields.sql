@@ -1,4 +1,6 @@
 
+\restrict OPDceSChbNkFUbC1phILfIKjQdMOc3qhLYO13zBv8T2gNVBKECWPVqxSmrs5fMo
+
 CREATE TABLE gn_imports.matching_fields (
     id_matching_field integer NOT NULL,
     source_field text,
@@ -27,4 +29,6 @@ ALTER TABLE ONLY gn_imports.matching_fields
 
 ALTER TABLE ONLY gn_imports.matching_fields
     ADD CONSTRAINT fk_matching_fields_matching_tables FOREIGN KEY (id_matching_table) REFERENCES gn_imports.matching_tables(id_matching_table) ON UPDATE CASCADE;
+
+\unrestrict OPDceSChbNkFUbC1phILfIKjQdMOc3qhLYO13zBv8T2gNVBKECWPVqxSmrs5fMo
 

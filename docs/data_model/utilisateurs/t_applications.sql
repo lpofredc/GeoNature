@@ -1,4 +1,6 @@
 
+\restrict x96MsnTfKWRfnSXX2Q1nlHhaFPEF2IZUFXwEU5zwA2atnf46ysPWTMQaDgxEIpI
+
 CREATE TABLE utilisateurs.t_applications (
     id_application integer NOT NULL,
     code_application character varying(20) NOT NULL,
@@ -21,4 +23,6 @@ ALTER TABLE ONLY utilisateurs.t_applications
 
 ALTER TABLE ONLY utilisateurs.t_applications
     ADD CONSTRAINT fk_t_applications_id_parent FOREIGN KEY (id_parent) REFERENCES utilisateurs.t_applications(id_application) ON UPDATE CASCADE;
+
+\unrestrict x96MsnTfKWRfnSXX2Q1nlHhaFPEF2IZUFXwEU5zwA2atnf46ysPWTMQaDgxEIpI
 

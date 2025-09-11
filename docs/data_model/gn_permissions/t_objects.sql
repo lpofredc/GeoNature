@@ -1,4 +1,6 @@
 
+\restrict boyMwjGx462PxqgDXwKfbabesXYWAQkhfVIXTcIFFS9OY1mZnnzfx6mT5D5FFnm
+
 CREATE TABLE gn_permissions.t_objects (
     id_object integer NOT NULL,
     code_object character varying(50) NOT NULL,
@@ -20,4 +22,6 @@ ALTER TABLE ONLY gn_permissions.t_objects
 
 ALTER TABLE ONLY gn_permissions.t_objects
     ADD CONSTRAINT unique_t_objects UNIQUE (code_object);
+
+\unrestrict boyMwjGx462PxqgDXwKfbabesXYWAQkhfVIXTcIFFS9OY1mZnnzfx6mT5D5FFnm
 

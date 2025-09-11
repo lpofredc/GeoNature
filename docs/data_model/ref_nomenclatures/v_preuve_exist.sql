@@ -1,4 +1,6 @@
 
+\restrict 1uH4CAoRmOLMwf0POuCA8sivpIFugfrHO14tVWM3rCFegvRh0GNNyomkFLRxt9P
+
 CREATE VIEW ref_nomenclatures.v_preuve_exist AS
  SELECT ctn.regne,
     ctn.group2_inpn,
@@ -11,4 +13,6 @@ CREATE VIEW ref_nomenclatures.v_preuve_exist AS
    FROM (ref_nomenclatures.t_nomenclatures n
      LEFT JOIN ref_nomenclatures.cor_taxref_nomenclature ctn ON ((ctn.id_nomenclature = n.id_nomenclature)))
   WHERE (((n.mnemonique)::text = 'PREUVE_EXIST'::text) AND (n.active = true));
+
+\unrestrict 1uH4CAoRmOLMwf0POuCA8sivpIFugfrHO14tVWM3rCFegvRh0GNNyomkFLRxt9P
 

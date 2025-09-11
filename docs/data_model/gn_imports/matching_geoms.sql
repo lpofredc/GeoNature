@@ -1,4 +1,6 @@
 
+\restrict Rm9AlJCzgcs7nVRjaeXsfubgkDyeVyMtK6UX53IGs6lX6fmW3AWuaW9ZuS5hYW0
+
 CREATE TABLE gn_imports.matching_geoms (
     id_matching_geom integer NOT NULL,
     source_x_field text,
@@ -27,4 +29,6 @@ ALTER TABLE ONLY gn_imports.matching_geoms
 
 ALTER TABLE ONLY gn_imports.matching_geoms
     ADD CONSTRAINT fk_matching_geoms_matching_tables FOREIGN KEY (id_matching_table) REFERENCES gn_imports.matching_tables(id_matching_table) ON UPDATE CASCADE;
+
+\unrestrict Rm9AlJCzgcs7nVRjaeXsfubgkDyeVyMtK6UX53IGs6lX6fmW3AWuaW9ZuS5hYW0
 

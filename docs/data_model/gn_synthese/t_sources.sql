@@ -1,4 +1,6 @@
 
+\restrict sfzce7D6zSf0D5gYbIXEnAaXo4Tp2KfzdsJBozASEjjN70UVkySLa1TGvsMy2Jr
+
 CREATE TABLE gn_synthese.t_sources (
     id_source integer NOT NULL,
     name_source character varying(255) NOT NULL,
@@ -30,4 +32,6 @@ CREATE TRIGGER tri_meta_dates_t_sources BEFORE INSERT OR UPDATE ON gn_synthese.t
 
 ALTER TABLE ONLY gn_synthese.t_sources
     ADD CONSTRAINT t_sources_id_module_fkey FOREIGN KEY (id_module) REFERENCES gn_commons.t_modules(id_module);
+
+\unrestrict sfzce7D6zSf0D5gYbIXEnAaXo4Tp2KfzdsJBozASEjjN70UVkySLa1TGvsMy2Jr
 

@@ -1,4 +1,6 @@
 
+\restrict chY32W3jCNrVsjDiCzEgVEdrBGiHsE7fi848lfmxOinSzhEaWF8tfGtSbd6RYi4
+
 CREATE TABLE ref_nomenclatures.cor_nomenclatures_relations (
     id_nomenclature_l integer NOT NULL,
     id_nomenclature_r integer NOT NULL,
@@ -13,4 +15,6 @@ ALTER TABLE ONLY ref_nomenclatures.cor_nomenclatures_relations
 
 ALTER TABLE ONLY ref_nomenclatures.cor_nomenclatures_relations
     ADD CONSTRAINT fk_cor_nomenclatures_relations_id_nomenclature_r FOREIGN KEY (id_nomenclature_r) REFERENCES ref_nomenclatures.t_nomenclatures(id_nomenclature);
+
+\unrestrict chY32W3jCNrVsjDiCzEgVEdrBGiHsE7fi848lfmxOinSzhEaWF8tfGtSbd6RYi4
 

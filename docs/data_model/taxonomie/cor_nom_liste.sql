@@ -1,4 +1,6 @@
 
+\restrict foosp8atUo0RlqOxB5qL1uzlETgUuq2I91AGfHtoMPaeyzdosfsSGFFoui2ftEs
+
 CREATE TABLE taxonomie.cor_nom_liste (
     id_liste integer NOT NULL,
     cd_nom integer NOT NULL
@@ -15,4 +17,6 @@ ALTER TABLE ONLY taxonomie.cor_nom_liste
 
 ALTER TABLE ONLY taxonomie.cor_nom_liste
     ADD CONSTRAINT cor_nom_listes_taxref_fkey FOREIGN KEY (cd_nom) REFERENCES taxonomie.taxref(cd_nom) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict foosp8atUo0RlqOxB5qL1uzlETgUuq2I91AGfHtoMPaeyzdosfsSGFFoui2ftEs
 

@@ -1,4 +1,6 @@
 
+\restrict cE0TOzdqdeOfKyzMyIpDQotM0IZEfWlOimkWbiyG6HY8SanKFgcYZ1Q3spfoQgC
+
 CREATE VIEW gn_commons.v_meta_actions_on_object AS
  WITH insert_a AS (
          SELECT t_history_actions.id_history_action,
@@ -36,4 +38,6 @@ CREATE VIEW gn_commons.v_meta_actions_on_object AS
    FROM ((insert_a i
      LEFT JOIN last_update_a u ON ((i.uuid_attached_row = u.uuid_attached_row)))
      LEFT JOIN delete_a d ON ((i.uuid_attached_row = d.uuid_attached_row)));
+
+\unrestrict cE0TOzdqdeOfKyzMyIpDQotM0IZEfWlOimkWbiyG6HY8SanKFgcYZ1Q3spfoQgC
 

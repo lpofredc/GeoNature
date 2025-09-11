@@ -1,4 +1,6 @@
 
+\restrict 9vaI6tBnW9EaRGazDxVt5mJ3Q5lzaqtpo3KomQB3MOYPlX5r55vtJz9SzHQTh41
+
 CREATE TABLE taxonomie.bdc_statut_values (
     id_value integer NOT NULL,
     code_statut character varying(50) NOT NULL,
@@ -19,4 +21,6 @@ ALTER SEQUENCE taxonomie.bdc_statut_values_id_value_seq OWNED BY taxonomie.bdc_s
 
 ALTER TABLE ONLY taxonomie.bdc_statut_values
     ADD CONSTRAINT bdc_statut_values_pkey PRIMARY KEY (id_value);
+
+\unrestrict 9vaI6tBnW9EaRGazDxVt5mJ3Q5lzaqtpo3KomQB3MOYPlX5r55vtJz9SzHQTh41
 

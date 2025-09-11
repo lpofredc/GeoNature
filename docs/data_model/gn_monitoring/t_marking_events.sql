@@ -1,4 +1,6 @@
 
+\restrict Hz4jc868NE6WozlyAYXJGxJzGHfi397iTXWcgT5mO8RJNQCaoUexvHA3YVHwx0k
+
 CREATE TABLE gn_monitoring.t_marking_events (
     id_marking integer NOT NULL,
     uuid_marking uuid DEFAULT public.uuid_generate_v4() NOT NULL,
@@ -50,4 +52,6 @@ ALTER TABLE ONLY gn_monitoring.t_marking_events
 
 ALTER TABLE ONLY gn_monitoring.t_marking_events
     ADD CONSTRAINT t_marking_events_id_operator_fkey FOREIGN KEY (id_operator) REFERENCES utilisateurs.t_roles(id_role);
+
+\unrestrict Hz4jc868NE6WozlyAYXJGxJzGHfi397iTXWcgT5mO8RJNQCaoUexvHA3YVHwx0k
 

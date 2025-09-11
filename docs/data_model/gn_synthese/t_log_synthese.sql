@@ -1,4 +1,6 @@
 
+\restrict 28Q2r6F6DivLNcq5K5AhF2Q3XCX9U3ixZgcpfIT9t2OADd7shBrufsTkNgwgUza
+
 CREATE TABLE gn_synthese.t_log_synthese (
     id_synthese integer NOT NULL,
     last_action character(1) NOT NULL,
@@ -17,4 +19,6 @@ ALTER SEQUENCE gn_synthese.t_log_synthese_id_synthese_seq OWNED BY gn_synthese.t
 
 ALTER TABLE ONLY gn_synthese.t_log_synthese
     ADD CONSTRAINT t_log_synthese_pkey PRIMARY KEY (id_synthese);
+
+\unrestrict 28Q2r6F6DivLNcq5K5AhF2Q3XCX9U3ixZgcpfIT9t2OADd7shBrufsTkNgwgUza
 

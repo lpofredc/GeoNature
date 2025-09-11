@@ -1,4 +1,6 @@
 
+\restrict aj2Y8vlfJhfSCEhTJTkE0h72RhQxFzPNW9vTmV5UcqYp2jq5xcdlcIfVwdHb47l
+
 CREATE VIEW ref_nomenclatures.v_sampling_units_typ AS
  SELECT n.id_nomenclature,
     n.mnemonique,
@@ -9,4 +11,6 @@ CREATE VIEW ref_nomenclatures.v_sampling_units_typ AS
    FROM (ref_nomenclatures.t_nomenclatures n
      LEFT JOIN ref_nomenclatures.bib_nomenclatures_types t ON ((t.id_type = n.id_type)))
   WHERE (((t.mnemonique)::text = 'SAMPLING_UNITS_TYP'::text) AND (n.active = true));
+
+\unrestrict aj2Y8vlfJhfSCEhTJTkE0h72RhQxFzPNW9vTmV5UcqYp2jq5xcdlcIfVwdHb47l
 

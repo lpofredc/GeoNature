@@ -1,4 +1,6 @@
 
+\restrict cMDOsyIbFBgsM3DyFDPwohKqSiJuCGEcyEfl6PME5DWAjojW5dQTzUwDW7DdAJw
+
 CREATE VIEW taxonomie.v_taxref_all_listes AS
  SELECT t.regne,
     t.phylum,
@@ -16,4 +18,6 @@ CREATE VIEW taxonomie.v_taxref_all_listes AS
     d.id_liste
    FROM (taxonomie.taxref t
      JOIN taxonomie.cor_nom_liste d ON ((t.cd_nom = d.cd_nom)));
+
+\unrestrict cMDOsyIbFBgsM3DyFDPwohKqSiJuCGEcyEfl6PME5DWAjojW5dQTzUwDW7DdAJw
 

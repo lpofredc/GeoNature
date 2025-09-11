@@ -1,4 +1,6 @@
 
+\restrict al2FOlaf2OJsp6NVecqVWQY6ebmx2aifZzbvcLy6xy7HRtvlvZRXZVisEDTQikI
+
 CREATE TABLE ref_habitats.habref (
     cd_hab integer NOT NULL,
     fg_validite character varying(20) NOT NULL,
@@ -23,4 +25,6 @@ ALTER TABLE ONLY ref_habitats.habref
 
 ALTER TABLE ONLY ref_habitats.habref
     ADD CONSTRAINT fk_typoref FOREIGN KEY (cd_typo) REFERENCES ref_habitats.typoref(cd_typo) ON UPDATE CASCADE;
+
+\unrestrict al2FOlaf2OJsp6NVecqVWQY6ebmx2aifZzbvcLy6xy7HRtvlvZRXZVisEDTQikI
 

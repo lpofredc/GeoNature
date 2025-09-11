@@ -1,4 +1,6 @@
 
+\restrict 7G5Nm2docShsAvxynY31r3tmmCboMck3MXao68KrrCee4V5FMlSjmzFyzAyTgQu
+
 CREATE TABLE taxonomie.bdc_statut_taxons (
     id integer NOT NULL,
     id_value_text integer NOT NULL,
@@ -19,4 +21,6 @@ ALTER TABLE ONLY taxonomie.bdc_statut_taxons
 
 ALTER TABLE ONLY taxonomie.bdc_statut_taxons
     ADD CONSTRAINT bdc_statut_taxons_id_value_text_fkey FOREIGN KEY (id_value_text) REFERENCES taxonomie.bdc_statut_cor_text_values(id_value_text) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict 7G5Nm2docShsAvxynY31r3tmmCboMck3MXao68KrrCee4V5FMlSjmzFyzAyTgQu
 

@@ -1,4 +1,6 @@
 
+\restrict LIrVRjSGDccN3c7GHmXVKqzP9x9MCd5cYWhWUFJx5drRIg4OwAeZpymVxeNA098
+
 CREATE TABLE gn_imports.t_mappings (
     id integer NOT NULL,
     label character varying(255) NOT NULL,
@@ -27,4 +29,6 @@ ALTER TABLE ONLY gn_imports.t_mappings
 
 ALTER TABLE ONLY gn_imports.t_mappings
     ADD CONSTRAINT t_mappings_id_destination_fkey FOREIGN KEY (id_destination) REFERENCES gn_imports.bib_destinations(id_destination) ON DELETE CASCADE;
+
+\unrestrict LIrVRjSGDccN3c7GHmXVKqzP9x9MCd5cYWhWUFJx5drRIg4OwAeZpymVxeNA098
 

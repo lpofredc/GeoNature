@@ -1,4 +1,6 @@
 
+\restrict eHCstd5kevp9yT22BYx3XW8Ue087FSgMSEzPm18kVexGFoKI1P5Rza2JXGCqvIN
+
 CREATE TABLE ref_geo.cor_areas (
     id_area_group integer,
     id_area integer
@@ -15,4 +17,6 @@ ALTER TABLE ONLY ref_geo.cor_areas
 
 ALTER TABLE ONLY ref_geo.cor_areas
     ADD CONSTRAINT fk_ref_geo_cor_areas_id_area_group FOREIGN KEY (id_area_group) REFERENCES ref_geo.l_areas(id_area) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict eHCstd5kevp9yT22BYx3XW8Ue087FSgMSEzPm18kVexGFoKI1P5Rza2JXGCqvIN
 

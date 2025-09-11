@@ -1,4 +1,6 @@
 
+\restrict 6nJNfRW0Ob6coOEyA2MD3utr3zEnqH2r3ELxgFnJCbRRJbZcbq0hJsOvDzMoWLo
+
 CREATE TABLE pr_occtax.cor_role_releves_occtax (
     unique_id_cor_role_releve uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     id_releve_occtax bigint NOT NULL,
@@ -27,4 +29,6 @@ ALTER TABLE ONLY pr_occtax.cor_role_releves_occtax
 
 ALTER TABLE ONLY pr_occtax.cor_role_releves_occtax
     ADD CONSTRAINT fk_cor_role_releves_occtax_t_roles FOREIGN KEY (id_role) REFERENCES utilisateurs.t_roles(id_role) ON UPDATE CASCADE;
+
+\unrestrict 6nJNfRW0Ob6coOEyA2MD3utr3zEnqH2r3ELxgFnJCbRRJbZcbq0hJsOvDzMoWLo
 

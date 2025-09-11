@@ -1,4 +1,6 @@
 
+\restrict OtQ52gs0etMbqeUJ9YoESHJVkbJSPRWCa33DTWUSqQm2o2ezi9N31xcWq8q4gcQ
+
 CREATE TABLE gn_monitoring.cor_module_type (
     id_type_site integer NOT NULL,
     id_module integer NOT NULL
@@ -12,4 +14,6 @@ ALTER TABLE ONLY gn_monitoring.cor_module_type
 
 ALTER TABLE ONLY gn_monitoring.cor_module_type
     ADD CONSTRAINT fk_cor_module_type_id_nomenclature FOREIGN KEY (id_type_site) REFERENCES gn_monitoring.bib_type_site(id_nomenclature_type_site) ON UPDATE CASCADE ON DELETE CASCADE;
+
+\unrestrict OtQ52gs0etMbqeUJ9YoESHJVkbJSPRWCa33DTWUSqQm2o2ezi9N31xcWq8q4gcQ
 
