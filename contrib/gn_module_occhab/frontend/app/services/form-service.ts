@@ -59,6 +59,7 @@ export class OcchabFormService {
       area: null,
       id_nomenclature_area_surface_calculation: null,
       id_nomenclature_geographic_object: [null, Validators.required],
+      id_nomenclature_type_sol: null,
       geom_4326: [null, Validators.required],
       comment: null,
       habitats: this._fb.array([]),
@@ -83,6 +84,7 @@ export class OcchabFormService {
       id_nomenclature_area_surface_calculation:
         defaultNomenclature["METHOD_CALCUL_SURFACE"],
       id_nomenclature_geographic_object: defaultNomenclature["NAT_OBJ_GEO"],
+      id_nomenclature_type_sol: defaultNomenclature["TYPE_SOL"],
     });
   }
 
@@ -174,9 +176,11 @@ export class OcchabFormService {
     if (this.currentEditingHabForm !== null) {
       const habArrayForm = this.stationForm.controls
         .habitats as UntypedFormArray;
-      habArrayForm.controls[this.currentEditingHabForm].setValue(
-        this.currentHabCopy
-      );
+      if (this.currentHabCopy === null) habArrayForm.removeAt(0);
+      else
+        habArrayForm.controls[this.currentEditingHabForm].setValue(
+          this.currentHabCopy
+        );
       this.currentHabCopy = null;
       this.currentEditingHabForm = null;
     }
@@ -256,7 +260,7 @@ export class OcchabFormService {
         ...hab,
         id_nomenclature_determination_type: this.getOrNull(
           hab,
-          "nomenclature_determination_method"
+          "nomenclature_determination_type"
         ),
         id_nomenclature_collection_technique: this.getOrNull(
           hab,
@@ -266,6 +270,10 @@ export class OcchabFormService {
           hab,
           "nomenclature_abundance"
         ),
+        id_nomenclature_community_interest: this.getOrNull(
+          hab,
+          "nomenclature_community_interest"
+        ),
       };
     });
     station.habitats.forEach((hab, index) => {
@@ -273,6 +281,7 @@ export class OcchabFormService {
       formatedHabitats[index]["habref"]["search_name"] = hab.nom_cite;
     });
     station["habitats"] = formatedHabitats;
+    console.log(station);
     return {
       ...station,
       date_min: this._dateParser.parse(station.date_min),
@@ -288,6 +297,10 @@ export class OcchabFormService {
       id_nomenclature_exposure: this.getOrNull(
         station,
         "nomenclature_exposure"
+      ),
+      id_nomenclature_type_sol: this.getOrNull(
+        station,
+        "nomenclature_type_sol"
       ),
     };
   }

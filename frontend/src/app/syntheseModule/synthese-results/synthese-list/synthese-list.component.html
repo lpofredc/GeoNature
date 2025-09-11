@@ -18,7 +18,10 @@
   (sort)="onSort($event)"
   (select)="mapListService.onRowSelect($event)"
 >
-  <ngx-datatable-column [maxWidth]="5">
+  <ngx-datatable-column
+    [maxWidth]="5"
+    [sortable]="false"
+  >
     <ng-template ngx-datatable-header-template>
       <i
         id="dropdownMenuButton"
@@ -27,7 +30,7 @@
         data-toggle="dropdown"
         aria-haspopup="true"
         aria-expanded="false"
-        matTooltip="{{ 'List.Columns' | translate }}"
+        matTooltip="{{ 'Columns' | translate }}"
         (click)="openModalCol($event, modalCol)"
       ></i>
     </ng-template>
@@ -35,8 +38,8 @@
       let-row="row"
       ngx-datatable-cell-template
     >
-      <button
-        class="btn btn-outline-shadow btn-no-padding btn-ghost"
+      <a
+        class="link-dark"
         [routerLink]="['occurrence', row['id_synthese'], 'details']"
       >
         <i
@@ -46,18 +49,21 @@
           aria-hidden="true "
           data-qa="synthese-info-btn"
         ></i>
-      </button>
+      </a>
     </ng-template>
   </ngx-datatable-column>
 
-  <ngx-datatable-column [maxWidth]="5">
+  <ngx-datatable-column
+    [maxWidth]="5"
+    [sortable]="false"
+  >
     <ng-template
       let-row="row"
       ngx-datatable-cell-template
     >
-      <button
+      <a
         *ngIf="row.url_source"
-        class="btn btn-outline-shadow btn-no-padding btn-ghost"
+        class="link-dark"
         (click)="backToModule(row.url_source, row.entity_source_pk_value)"
       >
         <i
@@ -65,7 +71,7 @@
           class="fa fa-file-text"
           aria-hidden="true"
         ></i>
-      </button>
+      </a>
     </ng-template>
   </ngx-datatable-column>
 
@@ -86,7 +92,7 @@
         [title]="row[col.prop]"
         [ngSwitch]="col.prop"
       >
-        <div *ngSwitchCase="'date_min' || 'date_max'">
+        <div *ngSwitchCase="['date_min', 'date_max'].includes(col.prop) ? col.prop : false">
           {{ getDate(row[col.prop]) }}
         </div>
         <div *ngSwitchCase="'nom_vern_or_lb_nom'">
@@ -131,7 +137,7 @@
       class="btn-action uppercase"
       [routerLink]="['/import', destinationImportCode, 'process', 'upload']"
     >
-      {{ 'Upload' | translate }}
+      {{ 'Actions.Upload' | translate }}
       <mat-icon>file_upload</mat-icon>
     </button>
   </div>
@@ -146,7 +152,7 @@
       [disabled]="_cruvedStore.cruved?.SYNTHESE?.cruved?.E === 0"
       data-qa="synthese-download-btn"
     >
-      {{ 'Download' | translate }}
+      {{ 'Actions.Download' | translate }}
       <mat-icon>file_download</mat-icon>
     </button>
   </div>
@@ -157,7 +163,7 @@
   let-d="dismiss"
 >
   <div class="modal-header">
-    <h4>{{ 'List.DisplayColumns' | translate }}</h4>
+    <h4>{{ 'DisplayColumns' | translate }}</h4>
   </div>
   <div class="modal-body">
     <div

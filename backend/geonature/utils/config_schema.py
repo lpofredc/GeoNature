@@ -1,5 +1,6 @@
 """
-Description des options de configuration
+Global GeoNature settings definitions and default values.
+Never edit this file, but you can override some settings in you own config/default_config.toml file.
 """
 
 import os
@@ -138,11 +139,7 @@ class MetadataConfig(Schema):
     CLOSED_AF_TITLE = fields.String(load_default="")
     AF_PDF_TITLE = fields.String(load_default="Cadre d'acquisition: ")
     DS_PDF_TITLE = fields.String(load_default="")
-    MAIL_SUBJECT_AF_CLOSED_BASE = fields.String(load_default="")
-    MAIL_CONTENT_AF_CLOSED_ADDITION = fields.String(load_default="")
-    MAIL_CONTENT_AF_CLOSED_PDF = fields.String(load_default="")
-    MAIL_CONTENT_AF_CLOSED_URL = fields.String(load_default="")
-    MAIL_CONTENT_AF_CLOSED_GREETINGS = fields.String(load_default="")
+    EXTENDED_AF_PUBLISH_ROUTE_NAME = fields.String(load_default="")
     CLOSED_MODAL_LABEL = fields.String(load_default="Fermer un cadre d'acquisition")
     CLOSED_MODAL_CONTENT = fields.String(
         load_default="""L'action de fermeture est irréversible. Il ne sera
@@ -197,6 +194,8 @@ class GnPySchemaConf(Schema):
         ),
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = fields.Boolean(load_default=True)
+
+    SQLALCHEMY_ENGINE_OPTIONS = fields.Dict(load_default={})
     SESSION_TYPE = fields.String(load_default="filesystem")
     SECRET_KEY = fields.String(required=True, validate=Length(min=20))
     # le cookie expire toute les 7 jours par défaut
@@ -293,11 +292,11 @@ class ExportObservationSchema(Schema):
 class TaxonSheet(Schema):
     # --------------------------------------------------------------------
     # SYNTHESE - TAXON_SHEET
+    ENABLE_TAB_OBSERVATIONS = fields.Boolean(load_default=True)
     ENABLE_TAB_OBSERVERS = fields.Boolean(load_default=True)
     ENABLE_TAB_PROFILE = fields.Boolean(load_default=True)
     ENABLE_TAB_TAXONOMY = fields.Boolean(load_default=True)
     ENABLE_TAB_MEDIA = fields.Boolean(load_default=True)
-    ENABLE_TAB_OBSERVERS = fields.Boolean(load_default=True)
 
 
 class Synthese(Schema):
@@ -479,6 +478,10 @@ class Synthese(Schema):
         return data
 
 
+class PermissionConfig(Schema):
+    GEOGRAPHIC_FILTER_AREA_TYPES = fields.List(fields.String(), load_default=["COM", "DEP", "REG"])
+
+
 # Map configuration
 BASEMAP = [
     {
@@ -580,6 +583,7 @@ class GnGeneralSchemaConf(Schema):
     FRONTEND = fields.Nested(GnFrontEndConf, load_default=GnFrontEndConf().load({}))
     SYNTHESE = fields.Nested(Synthese, load_default=Synthese().load({}))
     IMPORT = fields.Nested(ImportConfigSchema, load_default=ImportConfigSchema().load({}))
+    PERMISSIONS = fields.Nested(PermissionConfig, load_default=PermissionConfig().load({}))
     MAPCONFIG = fields.Nested(MapConfig, load_default=MapConfig().load({}))
     # Ajoute la surchouche 'taxonomique' sur l'API nomenclature
     ENABLE_NOMENCLATURE_TAXONOMIC_FILTERS = fields.Boolean(load_default=True)

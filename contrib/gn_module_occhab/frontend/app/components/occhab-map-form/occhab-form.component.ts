@@ -104,14 +104,14 @@ export class OccHabFormComponent implements OnInit, OnDestroy {
 
   formIsDisable() {
     if (this.disabledForm) {
-      this._commonService.translateToaster('warning', 'Releve.FillGeometryFirst');
+      this._commonService.translateToaster('warning', 'Messages.FillGeometryFirst');
     }
   }
 
   // display help toaster for filelayer
   infoMessageFileLayer() {
     if (this.firstFileLayerMessage) {
-      this._commonService.translateToaster('info', 'Map.FileLayerInfoMessage');
+      this._commonService.translateToaster('info', 'Map.Messages.FileLayerInfo');
     }
     this.firstFileLayerMessage = false;
   }
@@ -125,6 +125,7 @@ export class OccHabFormComponent implements OnInit, OnDestroy {
     this.showHabForm = false;
     this.showTabHab = true;
     this.occHabForm.currentEditingHabForm = null;
+    this.occHabForm.currentHabCopy = null;
     this.atLeastOneHab = true;
   }
 

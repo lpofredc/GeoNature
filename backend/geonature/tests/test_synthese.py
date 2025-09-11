@@ -37,6 +37,7 @@ from geonature.core.gn_commons.models.base import TModules
 from apptax.taxonomie.models import Taxref
 from ref_geo.models import BibAreasTypes, LAreas
 from apptax.tests.fixtures import noms_example, attribut_example, liste
+from pypnusershub.db.models import User
 from pypnusershub.tests.utils import logged_user_headers, set_logged_user
 
 from utils_flask_sqla_geo.schema import GeoModelConverter, GeoAlchemyAutoSchema
@@ -53,14 +54,6 @@ def unexisted_id():
         db.session.execute(select(func.max(TDatasets.id_dataset)).select_from(TDatasets)).scalar()
         + 1
     )
-
-
-@pytest.fixture()
-def source():
-    source = TSources(name_source="test source")
-    with db.session.begin_nested():
-        db.session.add(source)
-    return source
 
 
 @pytest.fixture()
@@ -1138,11 +1131,11 @@ class TestSynthese:
         CD_REF_VALID_STATS = {
             "altitude_max": 900,
             "altitude_min": 800,
-            "area_count": 2,
+            "area_count": 3,
             "cd_ref": CD_REF_VALID,
             "date_max": "Thu, 03 Oct 2024 08:09:10 GMT",
             "date_min": "Wed, 02 Oct 2024 11:22:33 GMT",
-            "observation_count": 3,
+            "observation_count": 5,
             "observer_count": 1,
         }
 
@@ -1280,14 +1273,14 @@ class TestSynthese:
                     "date_max": "Thu, 03 Oct 2024 08:09:10 GMT",
                     "date_min": "Wed, 02 Oct 2024 11:22:33 GMT",
                     "media_count": 0,
-                    "observation_count": 3,
+                    "observation_count": 5,
                     "observer": "administrateur test",
                 },
                 {
                     "date_max": "Thu, 03 Oct 2024 08:09:10 GMT",
                     "date_min": "Wed, 02 Oct 2024 11:22:33 GMT",
                     "media_count": 0,
-                    "observation_count": 3,
+                    "observation_count": 5,
                     "observer": "bob bobby",
                 },
             ],
@@ -1301,14 +1294,14 @@ class TestSynthese:
                     "date_max": "Thu, 03 Oct 2024 08:09:10 GMT",
                     "date_min": "Wed, 02 Oct 2024 11:22:33 GMT",
                     "media_count": 0,
-                    "observation_count": 3,
+                    "observation_count": 5,
                     "observer": "bob bobby",
                 },
                 {
                     "date_max": "Thu, 03 Oct 2024 08:09:10 GMT",
                     "date_min": "Wed, 02 Oct 2024 11:22:33 GMT",
                     "media_count": 0,
-                    "observation_count": 3,
+                    "observation_count": 5,
                     "observer": "administrateur test",
                 },
             ],
@@ -1605,29 +1598,6 @@ class TestSynthese:
 
         assert response.status_code == 200
         assert response.json[0]["cd_nom"] == synthese_data["obs1"].cd_nom
-
-
-@pytest.fixture(scope="class")
-def synthese_module():
-    return TModules.query.filter_by(module_code="SYNTHESE").one()
-
-
-@pytest.fixture()
-def synthese_read_permissions(synthese_module):
-    def _synthese_read_permissions(role, scope_value, action="R", **kwargs):
-        action = PermAction.query.filter_by(code_action=action).one()
-        perm = Permission(
-            role=role,
-            action=action,
-            module=synthese_module,
-            scope_value=scope_value,
-            **kwargs,
-        )
-        with db.session.begin_nested():
-            db.session.add(perm)
-        return perm
-
-    return _synthese_read_permissions
 
 
 @pytest.fixture()
@@ -2020,3 +1990,196 @@ class TestMediaTaxon:
 
         assert response.status_code == 200
         assert isinstance(response.json["items"], list)
+
+
+@pytest.mark.usefixtures("client_class", "temporary_transaction")
+class TestSyntheseGeographicFilter:
+    @pytest.mark.parametrize("sensitivity_activated", (True, False))
+    def test_geographic_filter_get_obs(
+        self, synthese_data, synthese_read_permissions, sensitivity_activated
+    ):
+        with db.session.begin_nested():
+            user = User()
+            db.session.add(user)
+        chambery = db.session.execute(
+            sa.select(LAreas).where(LAreas.area_name == "Chambéry")
+        ).scalar_one()
+        guirec = db.session.execute(
+            sa.select(LAreas).where(LAreas.area_name == "Perros-Guirec")
+        ).scalar_one()
+        synthese_read_permissions(
+            user,
+            scope_value=None,
+            areas_filter=[chambery, guirec],
+            sensitivity_filter=sensitivity_activated,
+        )
+        set_logged_user(self.client, user)
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs1"].id_synthese,
+            )
+        )
+        assert response.status_code == 200, response.data
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs2"].id_synthese,
+            )
+        )
+        assert response.status_code == Forbidden.code, response.data
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs3"].id_synthese,
+            )
+        )
+        assert response.status_code == 200, response.data
+
+    @pytest.mark.parametrize("sensitivity_activated", (True, False))
+    def test_geographic_filter_list_obs(
+        self, synthese_data, synthese_read_permissions, sensitivity_activated
+    ):
+        with db.session.begin_nested():
+            user = User()
+            db.session.add(user)
+        chambery = db.session.execute(
+            sa.select(LAreas).where(LAreas.area_name == "Chambéry")
+        ).scalar_one()
+        guirec = db.session.execute(
+            sa.select(LAreas).where(LAreas.area_name == "Perros-Guirec")
+        ).scalar_one()
+        synthese_read_permissions(
+            user,
+            scope_value=None,
+            areas_filter=[chambery, guirec],
+            sensitivity_filter=sensitivity_activated,
+        )
+        set_logged_user(self.client, user)
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_observations_for_web",
+            )
+        )
+        assert response.status_code == 200, response.data
+        response_ids = [f["properties"]["id_synthese"] for f in response.json["features"]]
+        assert synthese_data["obs1"].id_synthese in response_ids
+        assert synthese_data["obs2"].id_synthese not in response_ids
+        assert synthese_data["obs3"].id_synthese in response_ids
+
+
+@pytest.mark.usefixtures("client_class", "temporary_transaction")
+class TestSyntheseTaxonomicFilter:
+    @pytest.mark.parametrize("sensitivity_activated", (True, False))
+    def test_taxonomic_filter_get_obs(
+        self, synthese_data, synthese_read_permissions, sensitivity_activated
+    ):
+        with db.session.begin_nested():
+            user = User()
+            db.session.add(user)
+        taxon1 = synthese_data["obs1"].taxref
+        taxon2 = synthese_data["obs2"].taxref.parent
+        synthese_read_permissions(
+            user,
+            scope_value=None,
+            taxons_filter=[taxon1, taxon2],
+            sensitivity_filter=sensitivity_activated,
+        )
+        set_logged_user(self.client, user)
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs1"].id_synthese,
+            )
+        )
+        assert response.status_code == 200, response.data
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs2"].id_synthese,
+            )
+        )
+        assert response.status_code == 200, response.data
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_one_synthese",
+                id_synthese=synthese_data["obs3"].id_synthese,
+            )
+        )
+        assert response.status_code == Forbidden.code, response.data
+
+    @pytest.mark.parametrize("sensitivity_activated", (True, False))
+    def test_taxonomic_filter_list_obs(
+        self, synthese_data, synthese_read_permissions, sensitivity_activated
+    ):
+        with db.session.begin_nested():
+            user = User()
+            db.session.add(user)
+        taxon1 = synthese_data["obs1"].taxref
+        taxon2 = synthese_data["obs2"].taxref.parent
+        synthese_read_permissions(
+            user,
+            scope_value=None,
+            taxons_filter=[taxon1, taxon2],
+            sensitivity_filter=sensitivity_activated,
+        )
+        set_logged_user(self.client, user)
+        response = self.client.get(
+            url_for(
+                "gn_synthese.synthese.get_observations_for_web",
+            )
+        )
+        assert response.status_code == 200, response.data
+        response_ids = [f["properties"]["id_synthese"] for f in response.json["features"]]
+        assert synthese_data["obs1"].id_synthese in response_ids
+        assert synthese_data["obs2"].id_synthese in response_ids
+        assert synthese_data["obs3"].id_synthese not in response_ids
+
+    def test_acces_taxon_sheet(self, synthese_read_permissions):
+
+        with db.session.begin_nested():
+            user_group = User(identifiant="group_test", groupe=True)
+            db.session.add(user_group)
+            user = User(groups=[user_group])
+            db.session.add(user)
+
+        taxon = Taxref.query.filter_by(cd_ref=60612).first()  # Lynx Boréal
+        taxon2 = Taxref.query.filter_by(cd_ref=61098).first()  # Bouquetin des alpes
+        synthese_read_permissions(user, scope_value=None, taxons_filter=[taxon])
+        synthese_read_permissions(user_group, scope_value=None, taxons_filter=[taxon2])
+
+        for taxon_cdref in [60612, 61098]:
+            set_logged_user(self.client, user)
+            response = self.client.get(
+                url_for("gn_synthese.synthese_taxon_info.is_authorized", cd_ref=taxon_cdref)
+            )
+            assert response.status_code == 200
+
+    @pytest.mark.parametrize("cd_ref,parent", [(2852, None), (79303, 186233)])
+    def test_taxon_sheet(self, synthese_read_permissions, cd_ref, parent):
+        with db.session.begin_nested():
+            user = User()
+            db.session.add(user)
+        cd_ref_perm = parent if parent else cd_ref
+        taxon = Taxref.query.filter_by(cd_ref=cd_ref_perm).first()
+        synthese_read_permissions(user, scope_value=None, taxons_filter=[taxon])
+        set_logged_user(self.client, user)
+
+        for route in [
+            "gn_synthese.synthese_taxon_info.is_authorized",
+            "gn_synthese.synthese_taxon_info.taxon_medias",
+            "gn_synthese.synthese_taxon_info.taxon_observers",
+            "gn_synthese.synthese_taxon_info.taxon_stats",
+        ]:
+            params = (
+                {"area_type": "COM"}
+                if route == "gn_synthese.synthese_taxon_info.taxon_stats"
+                else {}
+            )
+            response = self.client.get(url_for(route, cd_ref=cd_ref, **params))
+            assert response.status_code == 200
+
+            response = self.client.get(
+                url_for(route, cd_ref=202),
+            )
+            assert response.status_code == 403

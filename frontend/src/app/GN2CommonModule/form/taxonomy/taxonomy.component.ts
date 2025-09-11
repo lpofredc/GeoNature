@@ -14,6 +14,14 @@ import { debounceTime, distinctUntilChanged, filter, map, switchMap, tap } from 
 import { DataFormService } from '../data-form.service';
 import { ConfigService } from '@geonature/services/config.service';
 
+export interface TaxonParent {
+  cd_ref: number;
+  lb_nom: string;
+  id_rang: string;
+}
+
+export type TaxonParents = Array<TaxonParent>;
+
 export interface Taxon {
   search_name?: string;
   nom_valide?: string;
@@ -45,7 +53,7 @@ export interface Taxon {
  *
  *  @example
  * <pnx-taxonomy #taxon
- * label="{{ 'Taxon.Taxon' | translate }}
+ * label="{{ 'Taxon' | translate }}
  * [parentFormControl]="occurrenceForm.controls.cd_nom"
  * [idList]="occtaxConfig.id_taxon_list"
  * [charNumber]="3"

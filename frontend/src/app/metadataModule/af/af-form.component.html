@@ -159,11 +159,13 @@
             label="Date début"
             [parentFormControl]="form.get('acquisition_framework_start_date')"
             data-qa="pnx-metadata-af-form-start-date"
+            [noMaxDate]="true"
           ></pnx-date>
 
           <pnx-date
             label="Date fin"
             [parentFormControl]="form.get('acquisition_framework_end_date')"
+            [noMaxDate]="true"
           ></pnx-date>
 
           <small
@@ -171,7 +173,7 @@
             class="error"
             style="color: red"
           >
-            {{ 'Releve.DateMaxError' | translate }}
+            {{ 'Errors.DatesReversed' | translate }}
           </small>
 
           <!-- Hidden until backend have been developped

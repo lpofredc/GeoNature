@@ -82,11 +82,16 @@ export class ValidationSyntheseListComponent implements OnInit, OnChanges, After
     this.onMapClick();
     this.onTableClick();
     this.npage = 1;
+
+    const message_id = this.idSynthese
+      ? 'Validation.Messages.NoIdFound'
+      : 'Validation.Messages.NoData';
     this.messages = {
-      emptyMessage: this.idSynthese
-        ? this.translate.instant('Validation.noIdFound')
-        : this.translate.instant('Validation.noData'),
+      emptyMessage: 'No data found',
     };
+    this.translate.get(message_id).subscribe((translation) => {
+      this.messages.emptyMessage = translation;
+    });
   }
 
   onMapClick() {
@@ -321,5 +326,17 @@ export class ValidationSyntheseListComponent implements OnInit, OnChanges, After
     }
     // search if exists
     return reportItem;
+  }
+
+  /**
+   * compare warning value for sorting
+   *
+   */
+  compareWarning(a, b) {
+    let aWarningValue = a.last_validation && a.meta_update_date > a.last_validation.validation_date;
+    let bWarningValue = b.last_validation && b.meta_update_date > b.last_validation.validation_date;
+    if (aWarningValue && !bWarningValue) return 1;
+    if (!aWarningValue && bWarningValue) return -1;
+    return 0;
   }
 }

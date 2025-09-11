@@ -1,12 +1,15 @@
+from flask import g
 import typing
+from geonature.core.gn_permissions.tools import get_permissions
 from geonature.utils.env import db
 from ref_geo.models import LAreas, BibAreasTypes
 
 from geonature.core.gn_synthese.models import Synthese
-from sqlalchemy import select, desc, asc
-from apptax.taxonomie.models import Taxref
+from sqlalchemy import select, desc, asc, column, func, and_, exists, or_
+from apptax.taxonomie.models import Taxref, TaxrefTree
 from geonature.core.gn_synthese.utils.query_select_sqla import SyntheseQuery
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, aliased
+from sqlalchemy.sql.selectable import Select
 from werkzeug.exceptions import BadRequest
 from flask_sqlalchemy.pagination import Pagination
 from enum import Enum
@@ -15,6 +18,37 @@ from enum import Enum
 class SortOrder(Enum):
     ASC = "asc"
     DESC = "desc"
+
+
+class TaxonSheet:
+
+    def __init__(self, cd_ref):
+        self.cd_ref = cd_ref
+
+    def has_instance_permission(self, permissions=[]):
+        list_cd_nom = []
+        for perm in permissions:
+            if perm.taxons_filter:
+                list_cd_nom.extend([t.cd_nom for t in perm.taxons_filter])
+
+        child_taxon_cte = (
+            select(TaxrefTree.cd_nom)
+            .where(
+                TaxrefTree.path.op("<@")(
+                    select(func.array_agg(TaxrefTree.path))
+                    .where(TaxrefTree.cd_nom.in_(list_cd_nom))
+                    .subquery()
+                )
+            )
+            .cte()
+        )
+        if len(list_cd_nom) > 0:
+            is_authorized = db.session.scalar(
+                exists(TaxrefTree).where(child_taxon_cte.c.cd_nom.in_([self.cd_ref])).select()
+            )
+            return is_authorized
+
+        return True
 
 
 class TaxonSheetUtils:
@@ -36,9 +70,11 @@ class TaxonSheetUtils:
         return db.session.scalars(select(Taxref.cd_nom).where(Taxref.cd_ref == cd_ref))
 
     @staticmethod
-    def get_synthese_query_with_scope(current_user, scope: int, query: Query) -> SyntheseQuery:
+    def get_synthese_query_with_permissions(
+        current_user, permissions, query: Query
+    ) -> SyntheseQuery:
         synthese_query_obj = SyntheseQuery(Synthese, query, {})
-        synthese_query_obj.filter_query_with_cruved(current_user, scope)
+        synthese_query_obj.filter_query_with_permissions(current_user, permissions)
         return synthese_query_obj.query
 
     @staticmethod
@@ -54,11 +90,24 @@ class TaxonSheetUtils:
         return valid_area_types
 
     @staticmethod
-    def get_area_subquery(area_type: str) -> Query:
+    def get_area_selectquery(area_type: str) -> Select:
 
-        # Subquery to fetch areas based on area_type
+        # selectquery to fetch areas based on area_type
         return (
             select(LAreas.id_area)
             .where(LAreas.id_type == BibAreasTypes.id_type, BibAreasTypes.type_code == area_type)
             .alias("areas")
+        )
+
+    @staticmethod
+    def get_taxon_selectquery(cd_ref: int) -> Select:
+        # selectquery to fetch taxon and sub taxa based on cd_ref
+        return (
+            select(TaxrefTree.cd_nom)
+            .where(
+                TaxrefTree.path.op("<@")(
+                    select(TaxrefTree.path).where(TaxrefTree.cd_nom == cd_ref).scalar_subquery()
+                )
+            )
+            .alias("taxons")
         )

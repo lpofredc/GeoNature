@@ -13,7 +13,7 @@ import uuid
 from flask import current_app
 
 import sqlalchemy as sa
-from sqlalchemy import func, or_, and_, select, distinct
+from sqlalchemy import func, or_, and_, select, distinct, inspect
 from sqlalchemy.sql import text
 from sqlalchemy.orm import aliased
 from werkzeug.exceptions import BadRequest
@@ -38,6 +38,7 @@ from geonature.core.gn_meta.models import (
 from geonature.utils.errors import GeonatureApiError
 from apptax.taxonomie.models import (
     Taxref,
+    TaxrefTree,
     CorTaxonAttribut,
     TaxrefBdcStatutTaxon,
     bdc_statut_cor_text_area,
@@ -104,12 +105,11 @@ class SyntheseQuery:
                 )
             )
 
+        # For aliased models, we need to use inspect() and the class_ attribute
+        # to get the real table
+        geom_table = inspect(self.geom_column.class_).mapper.local_table
         self.srid = DB.session.scalar(
-            select(
-                func.Find_SRID(
-                    self.geom_column.table.schema, self.geom_column.table.name, self.geom_column.key
-                )
-            )
+            select(func.Find_SRID(geom_table.schema, geom_table.name, self.geom_column.key))
         )
         self.srid_l_areas = DB.session.scalar(
             select(func.Find_SRID(LAreas.__table__.schema, LAreas.__table__.name, "geom"))
@@ -159,7 +159,7 @@ class SyntheseQuery:
         permissions_filters = []
         excluded_sensitivity = None
         for perm in permissions:
-            if perm.has_other_filters_than("SCOPE", "SENSITIVITY"):
+            if perm.has_other_filters_than("SCOPE", "SENSITIVITY", "GEOGRAPHIC", "TAXONOMIC"):
                 continue
             perm_filters = []
             if perm.sensitivity_filter:
@@ -200,14 +200,32 @@ class SyntheseQuery:
                     ),  # user is dataset (or parent af) actor
                 ]
                 perm_filters.append(or_(*scope_filters))
+            if perm.areas_filter:
+                self.add_join(
+                    CorAreaSynthese,
+                    CorAreaSynthese.id_synthese,
+                    self.model.id_synthese,
+                )
+                where_clause = CorAreaSynthese.id_area.in_([a.id_area for a in perm.areas_filter])
+
+                perm_filters.append(where_clause)
+            if perm.taxons_filter:
+                # Does obs taxon path is an descendant of any path of taxons_filter?
+                self.add_join(TaxrefTree, self.model.cd_nom, TaxrefTree.cd_nom, join_type="right")
+
+                where_clause = TaxrefTree.path.op("<@")(
+                    sa.select(sa.func.array_agg(TaxrefTree.path))
+                    .where(TaxrefTree.cd_nom.in_([t.cd_nom for t in perm.taxons_filter]))
+                    .scalar_subquery()
+                )
+                perm_filters.append(where_clause)
             if perm_filters:
                 permissions_filters.append(and_(*perm_filters))
             else:
                 permissions_filters.append(sa.true())
         if permissions_filters:
             return or_(*permissions_filters)
-        else:
-            return sa.false()
+        return sa.false()
 
     def filter_query_with_permissions(self, user, permissions):
         """
@@ -502,7 +520,11 @@ class SyntheseQuery:
         for colname, value in self.filters.items():
             if colname.startswith("area"):
                 if self.geom_column.class_ != self.model:
-                    l_areas_cte = LAreas.query.filter(LAreas.id_area.in_(value)).cte("area_filter")
+                    l_areas_cte = (
+                        select(LAreas.geom, LAreas.geom_4326)
+                        .filter(LAreas.id_area.in_(value))
+                        .cte("area_filter")
+                    )
                     if self.srid != 4326:
 
                         if self.srid != self.srid_l_areas:
@@ -523,13 +545,12 @@ class SyntheseQuery:
                             func.ST_Intersects(self.geom_column, l_areas_cte.c.geom_4326)
                         )
                 else:
-                    cor_area_synthese_alias = aliased(CorAreaSynthese)
                     self.add_join(
-                        cor_area_synthese_alias,
-                        cor_area_synthese_alias.id_synthese,
+                        CorAreaSynthese,
+                        CorAreaSynthese.id_synthese,
                         self.model.id_synthese,
                     )
-                    self.query = self.query.where(cor_area_synthese_alias.id_area.in_(value))
+                    self.query = self.query.where(CorAreaSynthese.id_area.in_(value))
             elif colname.startswith("id_"):
                 col = getattr(self.model.__table__.columns, colname)
                 if isinstance(value, list):

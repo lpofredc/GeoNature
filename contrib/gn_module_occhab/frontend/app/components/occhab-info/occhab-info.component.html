@@ -98,6 +98,14 @@
         </div>
         <div class="content row">
           <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 padding-sm">
+            <h5>
+              <b class="text-muted">Type de sol :</b>
+            </h5>
+            <p *ngIf="station?.properties.nomenclature_type_sol">
+              {{ station.properties.nomenclature_type_sol.label_default }}
+            </p>
+          </div>
+          <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 padding-sm">
             <h5><b class="text-muted">Habitats de la station :</b></h5>
             <table class="table table-hover">
               <tr
@@ -121,7 +129,8 @@
             <h5><b class="text-muted">Commentaire :</b></h5>
             <p>{{ station?.properties.comment }}</p>
           </div>
-
+        </div>
+        <div class="content row">
           <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4">
             <h5><b class="text-muted">UUID de la station :</b></h5>
             <p>{{ station?.properties.unique_id_sinp_station }}</p>
@@ -142,6 +151,8 @@
       <div class="card-body">
         <div class="row">
           <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 padding-sm">
+            <b class="text-muted">UUID de l'habitat :</b>
+            {{ currentHab?.unique_id_sinp_hab }}
             <b class="text-muted">Technique de collecte :</b>
             {{ currentHab?.nomenclature_collection_technique?.label_default }}
             <br />

@@ -105,6 +105,13 @@ class Station(NomenclaturesMixin, db.Model):
         Nomenclature,
         foreign_keys=[id_nomenclature_geographic_object],
     )
+    id_nomenclature_type_sol = db.Column(
+        db.Integer, ForeignKey(Nomenclature.id_nomenclature), server_default=FetchedValue()
+    )
+    nomenclature_type_sol = db.relationship(
+        Nomenclature,
+        foreign_keys=[id_nomenclature_type_sol],
+    )
     # habref = db.relationship(Habref, lazy="joined")
 
     def has_instance_permission(self, scope):
@@ -231,6 +238,15 @@ class OccurenceHabitat(NomenclaturesMixin, db.Model):
     nomenclature_sensitivity = db.relationship(
         Nomenclature,
         foreign_keys=[id_nomenclature_sensitivity],
+    )
+    id_nomenclature_community_interest = db.Column(
+        "id_nomenclature_community_interest",
+        db.Integer,
+        ForeignKey(Nomenclature.id_nomenclature),
+    )
+    nomenclature_community_interest = db.relationship(
+        Nomenclature,
+        foreign_keys=[id_nomenclature_community_interest],
     )
 
 

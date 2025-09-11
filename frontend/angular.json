@@ -33,9 +33,15 @@
             "assets": [
               "src/assets",
               {
-                "glob": "**/*",
-                "input": "external_modules/*/assets/",
-                "output": "./assets/"
+                "glob": "*.json",
+                "input": "../custom/translations",
+                "output": "./assets/i18n/override/"
+              },
+              {
+                "followSymlinks": true,
+                "glob": "**/assets/**/*",
+                "input": "./external_modules/",
+                "output": "/modules/"
               },
               {
                 "glob": "**/*",

@@ -7,6 +7,7 @@ from flask import (
     jsonify,
     g,
 )
+
 from werkzeug.exceptions import Forbidden, NotFound, BadRequest
 from sqlalchemy import func, select, case, join, and_
 from sqlalchemy.orm import joinedload, lazyload, selectinload, contains_eager
@@ -97,6 +98,8 @@ def get_observations_for_web(permissions):
         "limit", current_app.config["SYNTHESE"]["NB_MAX_OBS_MAP"], type=int
     )
 
+    result_limit = None if result_limit == -1 else result_limit
+
     output_format = request.args.get("format", "ungrouped_geom")
     if output_format not in ["ungrouped_geom", "grouped_geom", "grouped_geom_by_areas"]:
         raise BadRequest(f"Bad format '{output_format}'")
@@ -137,7 +140,7 @@ def get_observations_for_web(permissions):
     for column in param_column_list:
         columns += [column, getattr(VSyntheseForWebApp, column)]
 
-    observations = func.json_build_object(*columns).label("obs_as_json")
+    observations_columns = func.json_build_object(*columns).label("obs_as_json")
 
     # Need to check if there are blurring permissions so that the blurring process
     # does not affect the performance if there is no blurring permissions
@@ -145,9 +148,10 @@ def get_observations_for_web(permissions):
     if not blurring_permissions:
         # No need to apply blurring => same path as before blurring feature
         obs_query = (
-            select(observations)
+            select(observations_columns)
             .where(VSyntheseForWebApp.the_geom_4326.isnot(None))
-            .order_by(VSyntheseForWebApp.date_min.desc())
+            .order_by(VSyntheseForWebApp.date_min.desc(), VSyntheseForWebApp.id_synthese.desc())
+            .distinct(VSyntheseForWebApp.id_synthese, VSyntheseForWebApp.date_min)
             .limit(result_limit)
         )
 
@@ -177,7 +181,7 @@ def get_observations_for_web(permissions):
         )
 
         obs_query = build_synthese_obs_query(
-            observations=observations,
+            observations_columns=observations_columns,
             allowed_geom_cte=allowed_geom_cte,
             limit=result_limit,
         )

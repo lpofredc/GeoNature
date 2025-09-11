@@ -229,7 +229,7 @@ export class MapService {
       this.setGeojsonCoord(geojson);
       this.marker.on('moveend', () => {
         if (this.map.getZoom() < this.config.MAPCONFIG.ZOOM_LEVEL_RELEVE) {
-          this._commonService.translateToaster('warning', 'Map.ZoomWarning');
+          this._commonService.translateToaster('warning', 'Map.Messages.ZoomWarning');
         } else {
           markerCoord = this.marker.getLatLng();
           geojson = {
@@ -370,9 +370,11 @@ export class MapService {
 
     // Load geojson file or WFS - application/json only
     if (['geojson', 'wfs'].includes(layerAdded.type)) {
-      this._httpClient.get<any>(layerAdded.url).subscribe((res = { features: [] }) => {
-        overlayer.addData(res);
-      });
+      fetch(layerAdded.url)
+        .then((response) => response.json())
+        .then((data) => {
+          overlayer.addData(data);
+        });
     }
 
     // Load ref_geo data

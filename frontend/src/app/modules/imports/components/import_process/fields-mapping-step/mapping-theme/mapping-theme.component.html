@@ -57,7 +57,7 @@
                 *ngIf="field.optional_conditions"
                 class="d-inline hint-condition"
               >
-                {{ 'Import.FieldMapping.OptionalIf' | translate }}
+                {{ 'OptionalIf' | translate }}
                 <!-- <ng-container *ngFor="let condition of field.optional_conditions"> -->
                 ({{ getFieldLabels(field.optional_conditions).join(', ') }})
                 <!-- </ng-container> -->
@@ -72,7 +72,7 @@
               "
             >
               <small class="hint-condition">
-                {{ 'Import.FieldMapping.RequiredIf' | translate }}
+                {{ 'RequiredIf' | translate }}
                 <!-- <ng-container *ngFor="let condition of "> -->
                 ({{ getFieldLabels(field.mandatory_conditions).join(', ') }})
                 <!-- </ng-container> -->
@@ -95,7 +95,7 @@
               *ngIf="displayAlert(field)"
               class="text-warning text-sm"
             >
-              {{ 'Import.FieldMapping.SinpUUIDWarning' | translate }}
+              {{ 'Import.FieldMapping.Messages.SinpUUIDWarning' | translate }}
             </p>
             <label for="{{ field.name_field }}">
               <small>{{ field.fr_label }} :</small>

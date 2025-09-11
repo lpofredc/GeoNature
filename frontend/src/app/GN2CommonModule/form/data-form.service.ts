@@ -6,7 +6,7 @@ import {
   HttpErrorResponse,
   HttpEvent,
 } from '@angular/common/http';
-import { Taxon } from './taxonomy/taxonomy.component';
+import { Taxon, TaxonParents } from './taxonomy/taxonomy.component';
 import { Observable } from 'rxjs';
 import { isArray } from 'rxjs/internal-compatibility';
 import { map } from 'rxjs/operators';
@@ -52,14 +52,14 @@ export class DataFormService {
     group3_inpn
       ? (params = params.set('group3_inpn', group3_inpn))
       : (params = params.set('group3_inpn', ''));
-    if (filters['orderby']) {
-      params = params.set('orderby', filters['orderby']);
+    if (filters?.orderby) {
+      params = params.set('orderby', filters.orderby);
     }
-    if (filters['order']) {
-      params = params.set('order', filters['order']);
+    if (filters?.order) {
+      params = params.set('order', filters.order);
     }
-    if (filters['cd_nomenclature'] && filters['cd_nomenclature'].length > 0) {
-      filters['cd_nomenclature'].forEach((cd) => {
+    if (filters?.cd_nomenclature && filters.cd_nomenclature.length > 0) {
+      filters.cd_nomenclature.forEach((cd) => {
         params = params.append('cd_nomenclature', cd);
       });
     }
@@ -146,16 +146,30 @@ export class DataFormService {
     });
   }
 
-  getTaxonInfo(cd_nom: number, fields?: Array<string>, areasStatus?: Array<string>) {
+  getTaxonInfo(
+    cd_nom: number,
+    fields?: Array<string>,
+    areasStatus?: Array<string>,
+    linnaeanParents?: boolean
+  ) {
     let query_string = new HttpParams();
     if (areasStatus) {
       query_string = query_string.append('areas_status', areasStatus.join(','));
+    }
+    if (linnaeanParents) {
+      query_string = query_string.append('linnaean_parents', true);
     }
     if (fields) {
       query_string = query_string.append('fields', fields.join(','));
     }
     return this._http.get<Taxon>(`${this.getTaxhubAPI()}/taxref/${cd_nom}`, {
       params: query_string,
+    });
+  }
+
+  getTaxonLinnaeanParents(taxon: Taxon): Observable<TaxonParents> {
+    return this._http.get<TaxonParents>(`${this.getTaxhubAPI()}/taxref/${taxon.cd_nom}/parents`, {
+      params: { linnaean: true },
     });
   }
 

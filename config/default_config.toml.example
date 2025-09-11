@@ -20,6 +20,11 @@ SQLALCHEMY_DATABASE_URI = "postgresql://monuser:monpassachanger@localhost:monpor
 # Note : Patch pour suivre la supression des médias et pouvoir supprimer un fichier sur un DELETE de media
 SQLALCHEMY_TRACK_MODIFICATIONS = true
 
+# Ce paramètre permet de configurer la connexion de SQLAlchemy avec la base de données
+# Les paramètres de configuration de la connexion doivent correspondre à ceux utilisé dans la fonction `create_engine` 
+# de SQLAlchemy : https://docs.sqlalchemy.org/en/14/core/engines.html#sqlalchemy.create_engine
+SQLALCHEMY_ENGINE_OPTIONS = {}
+
 # Application
 
 # Nom de l'application dans la page d'accueil.
@@ -134,10 +139,10 @@ MEDIA_CLEAN_CRONTAB = "0 1 * * *"
     # Affiche la carte des 100 dernieres observations sur la page d'accueil
     DISPLAY_MAP_LAST_OBS = true
 
-    # Passe le frontend en mode multilingue (non implémenté pour l'instant)
+    # Affiche le selecteur de langue dans l'interface
     MULTILINGUAL = false
 
-    #Affiche les emails des observateurs dans les modules Synthese et Validation
+    # Affiche les emails des observateurs dans les modules Synthese et Validation
     DISPLAY_EMAIL_INFO_OBS = true
 
     # Ajoute du contenu à l'email validation / synthèse
@@ -147,6 +152,11 @@ MEDIA_CLEAN_CRONTAB = "0 1 * * *"
 
     # Activer l'affichage des informations liées aux profils de taxons (dans les modules Validation, Synthèse et Occtax)
     ENABLE_PROFILES = true
+
+# Configuration des paramètres des permissions
+[PERMISSIONS]
+    # Types de zonages accessibles pour les filtres géographiques
+    GEOGRAPHIC_FILTER_AREA_TYPES = ["COM", "DEP", "REG"]
 
 # Configuration de l'affichage des cartes dans GeoNature
 [MAPCONFIG]
@@ -448,10 +458,14 @@ MEDIA_CLEAN_CRONTAB = "0 1 * * *"
         # Permet d'activer ou non l'onglet "Profil"
         ENABLE_TAB_PROFILE = true
         # Permet d'activer ou non l'onglet "Taxonomie"
-
         ENABLE_TAB_TAXONOMY = true
-        # Permet d'activer ou non la section "Observers"
+        # Permet d'activer ou non la section "Observateurs"
         ENABLE_TAB_OBSERVERS = true
+        # Permet d'activer ou non la section "Observations"
+        ENABLE_TAB_OBSERVATIONS = true
+        # Permet d'activer ou non la section "Medias"
+        ENABLE_TAB_MEDIA = true
+
 
     # Le séparateur utilisé pour délimiter les observateurs à l'intérieur du champs observer
     FIELD_OBSERVERS_SEPARATORS =  [","]
@@ -588,11 +602,6 @@ MEDIA_CLEAN_CRONTAB = "0 1 * * *"
     AF_PDF_TITLE = ""
     DS_PDF_TITLE = ""
     URL_FRAMEWORK_DOWNLOAD = ""
-    MAIL_SUBJECT_AF_CLOSED_BASE = ""
-    MAIL_CONTENT_AF_CLOSED_ADDITION = ""
-    MAIL_CONTENT_AF_CLOSED_PDF = ""
-    MAIL_CONTENT_AF_CLOSED_URL = ""
-    MAIL_CONTENT_AF_CLOSED_GREETINGS = ""
     CLOSED_MODAL_LABEL = "Dépôt d'un cadre d'acquisition"
     CLOSED_MODAL_CONTENT = "L'action de dépôt est une action irréversible. Il ne sera plus possible d'ajouter des jeux de données au cadre d'acquisition par la suite. Vous ne pourrez pas supprimer votre dépôt. "
     # liste des types de role à afficher sur les formulaires JDD et CA
@@ -685,8 +694,8 @@ MEDIA_CLEAN_CRONTAB = "0 1 * * *"
     DEFAULT_GENERATE_MISSING_UUID = true
 
 
-    # Identifiant d'une géométrie présente dans RefGeo. Si différent de -1, vérifie si les géométries
-    # des entités importées sont bien dans l'emprise spatiale de cette dernière.
+    # Si différent de null, ce paramètre vérifie que les géométries des observations (ou stations) importées se trouvent
+    dans le polygone du zonage relié à l'identifiant indiqué par la valeur. Cette identifiant doit correspondre à une valeur contenue dans `ref_geo.l_areas.id_area`.
     ID_AREA_RESTRICTION = null
 
 

@@ -1,6 +1,7 @@
 // Angular's modules
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -139,7 +140,7 @@ import { IndividualsCreateComponent } from './form/individuals/create/individual
     NgxDatatableModule,
     NgSelectModule,
     RouterModule,
-    TranslateModule.forChild(),
+    TranslateModule,
     TreeModule,
   ],
   declarations: [

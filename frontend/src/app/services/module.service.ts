@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { DataFormService } from '@geonature_common/form/data-form.service';
 import { Observable, of, BehaviorSubject } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import {Module} from "@geonature/models/module.model";
 
 @Injectable()
 export class ModuleService {
@@ -42,9 +43,10 @@ export class ModuleService {
     );
   }
 
-  getModules() {
+  getModules(): Module[]{
     return this.modules;
   }
+
 
   getDisplayedModules() {
     return this.modules.filter((mod) => {
